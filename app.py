@@ -13,7 +13,6 @@ st.set_page_config(
 # Premium Dark Glassmorphism Styling
 st.markdown("""
 <style>
-    /* Global Styles */
     .main {
         background-color: #0b0e14;
     }
@@ -22,7 +21,6 @@ st.markdown("""
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     
-    /* VS Banner Styling */
     .vs-banner {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -34,7 +32,6 @@ st.markdown("""
         margin-bottom: 25px;
     }
     
-    /* Team Logo Circle */
     .team-logo-img {
         width: 72px;
         height: 72px;
@@ -42,26 +39,6 @@ st.markdown("""
         filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.5));
     }
     
-    /* Custom Market Metric Card */
-    .market-card {
-        background: #1e293b;
-        border-radius: 12px;
-        padding: 16px;
-        border-left: 4px solid #38bdf8;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        margin-bottom: 12px;
-    }
-    
-    .odd-pill {
-        background: #0ea5e9;
-        color: white;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-    }
-    
-    /* Progress Bar custom style */
     .stProgress > div > div > div > div {
         background-image: linear-gradient(to right, #3b82f6 , #06b6d4);
     }
@@ -72,7 +49,6 @@ st.markdown("""
 # LOGO MAPPING HELPER
 # ---------------------------------------------------------
 def get_team_logo(team_name):
-    # Reliable CDN logos with fallback to dynamic UI avatars
     logo_map = {
         # Football
         "Arsenal": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
@@ -83,27 +59,28 @@ def get_team_logo(team_name):
         "Tottenham": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
         "Real Madrid": "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",
         "Barcelona": "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",
-        # LoL
-        "T1": "https://a.espncdn.com/i/teamlogos/eSports/500/300.png",
-        "Gen.G": "https://a.espncdn.com/i/teamlogos/eSports/500/305.png",
-        "Bilibili Gaming (BLG)": "https://a.espncdn.com/i/teamlogos/eSports/500/331.png",
-        "Top Esports (TES)": "https://a.espncdn.com/i/teamlogos/eSports/500/332.png",
-        "G2 Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/222.png",
-        "Fnatic": "https://a.espncdn.com/i/teamlogos/eSports/500/203.png",
-        "Hanwha Life Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/310.png",
+        # LoL DCGI Group Stage Teams
+        "JD Gaming": "https://a.espncdn.com/i/teamlogos/eSports/500/333.png",
         "KT Rolster": "https://a.espncdn.com/i/teamlogos/eSports/500/301.png",
+        "BNK FEARX": "https://a.espncdn.com/i/teamlogos/eSports/500/311.png",
+        "HANJIN BRION": "https://a.espncdn.com/i/teamlogos/eSports/500/312.png",
+        "Team WE": "https://a.espncdn.com/i/teamlogos/eSports/500/330.png",
+        "LGD Gaming": "https://a.espncdn.com/i/teamlogos/eSports/500/328.png",
+        "Natus Vincere (NAVI)": "https://a.espncdn.com/i/teamlogos/eSports/500/201.png",
+        "Team Vitality": "https://a.espncdn.com/i/teamlogos/eSports/500/255.png",
+        "FlyQuest": "https://a.espncdn.com/i/teamlogos/eSports/500/225.png",
+        "Shopify Rebellion": "https://a.espncdn.com/i/teamlogos/eSports/500/365.png",
+        "GAM Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/340.png",
+        "RED Canids": "https://a.espncdn.com/i/teamlogos/eSports/500/260.png",
         # CS2 / Valorant
         "Team Spirit": "https://a.espncdn.com/i/teamlogos/eSports/500/350.png",
-        "Team Vitality": "https://a.espncdn.com/i/teamlogos/eSports/500/255.png",
         "FaZe Clan": "https://a.espncdn.com/i/teamlogos/eSports/500/210.png",
-        "Natus Vincere (NAVI)": "https://a.espncdn.com/i/teamlogos/eSports/500/201.png",
         "Paper Rex": "https://a.espncdn.com/i/teamlogos/eSports/500/360.png"
     }
     
     if team_name in logo_map:
         return logo_map[team_name]
     
-    # Clean fallback text badge generator
     clean_name = team_name.split('(')[0].strip().replace(" ", "+")
     return f"https://ui-avatars.com/api/?name={clean_name}&background=1e293b&color=38bdf8&size=128&bold=true"
 
@@ -166,7 +143,6 @@ with tab_foot:
             away_t = st.selectbox("Away Team", teams_foot, index=1 if len(teams_foot) > 1 else 0, key="f_away")
 
         if home_t != away_t:
-            # Render Matchup Header Card with Logos
             logo_h = get_team_logo(home_t)
             logo_a = get_team_logo(away_t)
 
@@ -191,7 +167,6 @@ with tab_foot:
             """, unsafe_allow_html=True)
 
             if st.button("🚀 Calculate Football Odds", type="primary", use_container_width=True):
-                # Calculations
                 hg = df_foot[df_foot['HomeTeam'] == home_t]
                 ag = df_foot[df_foot['AwayTeam'] == away_t]
                 avg_h = df_foot['FTHG'].mean() or 1.35
@@ -228,7 +203,6 @@ with tab_foot:
                 m2.metric("Draw", f"{draw:.1f}%", f"{int(draw)}¢")
                 m3.metric(f"{away_t} Win", f"{away_win:.1f}%", f"{int(away_win)}¢")
 
-                # Visual probability bar
                 st.write("**Win Probability Bar**")
                 st.progress(int(home_win))
 
@@ -242,7 +216,7 @@ with tab_foot:
         st.error(f"Unable to load data: {e}")
 
 # ---------------------------------------------------------
-# 2. ESPORTS ENGINE (VALORANT, CS2, LOL)
+# 2. ESPORTS ENGINE FUNCTION
 # ---------------------------------------------------------
 def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
     st.caption(f"🏆 Active Tournament: **{tournament_name}**")
@@ -261,7 +235,6 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
         logo_a = get_team_logo(t_a)
         logo_b = get_team_logo(t_b)
 
-        # VS Header Banner
         st.markdown(f"""
         <div class="vs-banner">
             <div style="display: flex; justify-content: space-around; align-items: center;">
@@ -373,15 +346,20 @@ with tab_cs:
     }
     render_esports_tab("Counter-Strike 2", "CS2 ESL Pro League / Major 2026", cs_teams, "cs")
 
-# LEAGUE OF LEGENDS TAB
+# LEAGUE OF LEGENDS TAB (12 Official DCGI Group Stage Teams)
 with tab_lol:
-    lol_teams = {
-        "Gen.G": 1920, "T1": 1900, "Hanwha Life Esports": 1880, "KT Rolster": 1800,
-        "Bilibili Gaming (BLG)": 1890, "Top Esports (TES)": 1840, "JD Gaming (JDG)": 1830,
-        "Weibo Gaming (WBG)": 1820, "LNG Esports": 1790, "Anyone's Legend (AL)": 1780,
-        "Invictus Gaming (iG)": 1770, "Team WE": 1750, "FunPlus Phoenix (FPX)": 1740,
-        "Natus Vincere (NAVI)": 1750, "Team Vitality": 1740, "G2 Esports": 1810,
-        "FlyQuest": 1760, "Cloud9": 1770, "Team Liquid": 1760, "GAM Esports": 1720,
-        "ZSM (Ale, Ning, FoFo, Lwx)": 1660, "FRK (fearness, Cryin, Smlz)": 1650
+    dcgi_group_stage_teams = {
+        "KT Rolster": 1820,
+        "BNK FEARX": 1760,
+        "HANJIN BRION": 1730,
+        "JD Gaming": 1840,
+        "Team WE": 1760,
+        "LGD Gaming": 1720,
+        "Natus Vincere (NAVI)": 1750,
+        "Team Vitality": 1740,
+        "Shopify Rebellion": 1730,
+        "FlyQuest": 1770,
+        "GAM Esports": 1720,
+        "RED Canids": 1700
     }
-    render_esports_tab("League of Legends", "Demacia Cup & Global Invitational (DCGI)", lol_teams, "lol")
+    render_esports_tab("League of Legends", "Demacia Cup Global Invitational (DCGI) Swiss & Group Stage", dcgi_group_stage_teams, "lol")
