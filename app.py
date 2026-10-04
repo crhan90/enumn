@@ -4,15 +4,15 @@ import numpy as np
 import math
 
 # 1. Page Configuration
-st.set_page_config(page_title="Multi-League & Nations League AI Predictor", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="2026/2027 Season AI Football Predictor", page_icon="⚽", layout="centered")
 
-st.title("⚽ Multi-League AI Game Line Predictor")
-st.write("Predict Moneyline, Spreads, Over/Under Totals, BTTS, and Team Totals for top leagues and UEFA Nations League.")
+st.title("⚽ 2026/2027 Multi-League AI Game Line Predictor")
+st.write("Predict Moneyline, Spreads, Over/Under Totals, BTTS, and Team Totals for current 2026/2027 season leagues & UEFA Nations League.")
 
 # 2. League Mapping & Configuration
 LEAGUES = {
+    "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English Premier League (2026/2027)": "E0",
     "🏆 UEFA Nations League / National Teams": "INTERNATIONAL",
-    "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English Premier League": "E0",
     "🇪🇸 Spanish La Liga": "SP1",
     "🇮🇹 Italian Serie A": "I1",
     "🇩🇪 German Bundesliga": "D1",
@@ -24,31 +24,33 @@ LEAGUES = {
 selected_league_label = st.selectbox("Select Competition / League", list(LEAGUES.keys()))
 league_code = LEAGUES[selected_league_label]
 
-# 3. Data Loader Function with Multi-Season Fallback
-@st.cache_data(ttl=86400)
+# 3. Data Loader Function targeting 2026/2027 season datasets
+@st.cache_data(ttl=3600)  # Refresh hourly to pull latest 2026/2027 match results
 def load_match_data(code):
     if code == "INTERNATIONAL":
-        # Public dataset of international results (Includes Nations League, World Cup Qualifiers, Euros)
         url = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
         df = pd.read_csv(url)
-        # Filter for recent years to reflect current team strength
         df['date'] = pd.to_datetime(df['date'])
-        df = df[df['date'] >= '2021-01-01'].copy()
+        # Filter for recent years up to 2026
+        df = df[df['date'] >= '2022-01-01'].copy()
         df.rename(columns={'home_team': 'HomeTeam', 'away_team': 'AwayTeam', 
                            'home_score': 'FTHG', 'away_score': 'FTAG'}, inplace=True)
         return df[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']].dropna()
     else:
-        # Try latest season URLs for club leagues
-        seasons = ['2526', '2627', '2425']
+        # Load active 2026/2027 season data (2627) and fallback/combine with 2025/2026 (2526)
+        seasons = ['2627', '2526']
+        dfs = []
         for season in seasons:
             try:
                 url = f"https://www.football-data.co.uk/mmz4281/{season}/{code}.csv"
-                df = pd.read_csv(url)
-                if 'HomeTeam' in df.columns and len(df) > 0:
-                    return df[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']].dropna()
+                temp_df = pd.read_csv(url)
+                if 'HomeTeam' in temp_df.columns and len(temp_df) > 0:
+                    dfs.append(temp_df[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']])
             except Exception:
                 continue
-        raise ValueError("Could not fetch data for selected league.")
+        if dfs:
+            return pd.concat(dfs, ignore_index=True).dropna()
+        raise ValueError("Could not fetch 2026/2027 league data.")
 
 try:
     df = load_match_data(league_code)
@@ -58,12 +60,10 @@ try:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Defaults to Azerbaijan if present in International selection
-        default_home = all_teams.index("Azerbaijan") if "Azerbaijan" in all_teams else 0
+        default_home = all_teams.index("Arsenal") if "Arsenal" in all_teams else 0
         home_team = st.selectbox("Home Team", all_teams, index=default_home)
     with col2:
-        # Defaults to Lithuania if present
-        default_away = all_teams.index("Lithuania") if "Lithuania" in all_teams else (1 if len(all_teams) > 1 else 0)
+        default_away = all_teams.index("Chelsea") if "Chelsea" in all_teams else (1 if len(all_teams) > 1 else 0)
         away_team = st.selectbox("Away Team", all_teams, index=default_away)
 
     if home_team == away_team:
