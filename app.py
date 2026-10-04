@@ -1,33 +1,26 @@
 import streamlit as st
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+import math
 
-# 1. Page Setup
-st.set_page_config(page_title="Automated AI Football Predictor", page_icon="⚽", layout="centered")
+# 1. Page Configuration
+st.set_page_config(page_title="Multi-Market AI Football Predictor", page_icon="⚽", layout="centered")
 
-st.title("⚽ Automated AI Football Predictor")
-st.write("Select any two teams. The AI automatically fetches team form, calculates goals/win rates, and predicts match outcomes.")
+st.title("⚽ Multi-Market AI Match Predictor")
+st.write("Generates probabilities for Moneyline, Spreads, Over/Under Totals, Both Teams to Score, and Team Totals.")
 
-# 2. Automated Data Fetching Function
-@st.cache_data(ttl=86400) # Caches data for 24 hours
-def load_live_football_data():
-    # Downloads official international/league match data automatically
-    # E0 = Premier League. You can swap or add other league CSV URLs from football-data.co.uk
+# 2. Automated Historical Data Ingestion
+@st.cache_data(ttl=86400)
+def load_data():
     url = "https://www.football-data.co.uk/mmz4281/2425/E0.csv"
     df = pd.read_csv(url)
-    
-    # Filter key statistical columns
-    cols = ['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
-    df = df[cols].dropna()
-    return df
+    return df[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']].dropna()
 
 try:
-    df = load_live_football_data()
-    
-    # Extract unique team names for the dropdown
+    df = load_data()
     all_teams = sorted(list(set(df['HomeTeam'].unique()).union(set(df['AwayTeam'].unique()))))
 
-    st.subheader("Select Match")
+    st.subheader("Select Upcoming Match")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -38,73 +31,97 @@ try:
     if home_team == away_team:
         st.warning("Please select two different teams.")
     else:
-        # 3. AI Data Processing (Calculates Form Automatically)
-        def calculate_team_metrics(team_name, dataset):
-            home_games = dataset[dataset['HomeTeam'] == team_name]
-            away_games = dataset[dataset['AwayTeam'] == team_name]
-            
-            total_games = len(home_games) + len(away_games)
-            if total_games == 0:
-                return 0.50, 1.0  # Fallback defaults if new team
+        # 3. Calculate Expected Goals (xG)
+        home_games = df[df['HomeTeam'] == home_team]
+        away_games = df[df['AwayTeam'] == away_team]
 
-            home_wins = len(home_games[home_games['FTR'] == 'H'])
-            away_wins = len(away_games[away_games['FTR'] == 'A'])
-            total_wins = home_wins + away_wins
-            
-            total_goals = home_games['FTHG'].sum() + away_games['FTAG'].sum()
-            
-            win_rate = total_wins / total_games
-            avg_goals = total_goals / total_games
-            return win_rate, avg_goals
+        league_avg_home_goals = df['FTHG'].mean()
+        league_avg_away_goals = df['FTAG'].mean()
 
-        # Calculate metrics for both teams behind the scenes
-        h_win_rate, h_avg_goals = calculate_team_metrics(home_team, df)
-        a_win_rate, a_avg_goals = calculate_team_metrics(away_team, df)
+        home_attack = (home_games['FTHG'].mean() if len(home_games) > 0 else league_avg_home_goals) / league_avg_home_goals
+        home_defense = (home_games['FTAG'].mean() if len(home_games) > 0 else league_avg_away_goals) / league_avg_away_goals
 
-        # 4. Display Auto-Calculated Form
-        st.markdown("---")
-        st.subheader("Auto-Pulled Team Form Statistics")
-        stat_col1, stat_col2 = st.columns(2)
-        
-        stat_col1.metric(f"{home_team} Win Rate", f"{int(h_win_rate * 100)}%", f"{h_avg_goals:.2f} Avg Goals")
-        stat_col2.metric(f"{away_team} Win Rate", f"{int(a_win_rate * 100)}%", f"{a_avg_goals:.2f} Avg Goals")
+        away_attack = (away_games['FTAG'].mean() if len(away_games) > 0 else league_avg_away_goals) / league_avg_away_goals
+        away_defense = (away_games['FTHG'].mean() if len(away_games) > 0 else league_avg_home_goals) / league_avg_home_goals
 
-        # 5. Train Random Forest AI Model
-        df['Target'] = (df['FTR'] == 'H').astype(int) # 1 = Home Win, 0 = Draw/Away Win
-        
-        training_features = []
-        for _, row in df.iterrows():
-            hw, hg = calculate_team_metrics(row['HomeTeam'], df)
-            aw, ag = calculate_team_metrics(row['AwayTeam'], df)
-            training_features.append([hw, aw, hg, ag])
+        # Expected goals for each team
+        exp_home_goals = home_attack * away_defense * league_avg_home_goals
+        exp_away_goals = away_attack * home_defense * league_avg_away_goals
 
-        X = pd.DataFrame(training_features, columns=['h_wr', 'a_wr', 'h_g', 'a_g'])
-        y = df['Target']
+        # 4. Generate Poisson Goal Matrix (up to 7 goals each)
+        max_goals = 8
+        prob_matrix = np.zeros((max_goals, max_goals))
 
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
-        model.fit(X, y)
+        for i in range(max_goals):
+            for j in range(max_goals):
+                p_i = (exp_home_goals**i * np.exp(-exp_home_goals)) / math.factorial(i)
+                p_j = (exp_away_goals**j * np.exp(-exp_away_goals)) / math.factorial(j)
+                prob_matrix[i, j] = p_i * p_j
 
-        # 6. Prediction Output
-        if st.button("Generate AI Prediction", type="primary"):
-            match_input = [[h_win_rate, a_win_rate, h_avg_goals, a_avg_goals]]
-            probabilities = model.predict_proba(match_input)[0]
-            
-            home_prob = int(probabilities[1] * 100)
-            away_draw_prob = 100 - home_prob
+        prob_matrix /= prob_matrix.sum()  # Normalize probabilities
 
+        # 5. Prediction Execution
+        if st.button("Generate Full Market Line Predictions", type="primary"):
+            # Market 1: Moneyline (Home / Draw / Away)
+            home_win = np.sum(np.tril(prob_matrix, -1)) * 100
+            draw = np.sum(np.diag(prob_matrix)) * 100
+            away_win = np.sum(np.triu(prob_matrix, 1)) * 100
+
+            # Market 2: Spreads (-1.5 / +1.5)
+            home_cover_15 = 0
+            for i in range(max_goals):
+                for j in range(max_goals):
+                    if i - j >= 2:
+                        home_cover_15 += prob_matrix[i, j]
+            home_cover_15 *= 100
+            away_cover_15 = 100 - home_cover_15
+
+            # Market 3: Totals (Over / Under 2.5)
+            over_25 = 0
+            for i in range(max_goals):
+                for j in range(max_goals):
+                    if i + j > 2.5:
+                        over_25 += prob_matrix[i, j]
+            over_25 *= 100
+            under_25 = 100 - over_25
+
+            # Market 4: Both Teams to Score (BTTS)
+            btts_yes = np.sum(prob_matrix[1:, 1:]) * 100
+            btts_no = 100 - btts_yes
+
+            # Market 5: Individual Team Totals (Over 0.5)
+            home_over_05 = np.sum(prob_matrix[1:, :]) * 100
+            away_over_05 = np.sum(prob_matrix[:, 1:]) * 100
+
+            # Display Results Matching Market Format
             st.markdown("---")
-            st.subheader("AI Match Probabilities")
-            
-            res1, res2 = st.columns(2)
-            res1.metric(f"{home_team} Win Probability", f"{home_prob}%")
-            res2.metric(f"{away_team} / Draw Probability", f"{away_draw_prob}%")
+            st.subheader("📊 AI Probabilities Across All Game Lines")
 
-            if home_prob > 55:
-                st.success(f"**AI Prediction:** Strong statistical favor for {home_team} to win.")
-            elif home_prob < 40:
-                st.warning(f"**AI Prediction:** Advantage for {away_team} or Draw.")
-            else:
-                st.info("**AI Prediction:** Close match. High probability of a Draw or narrow victory.")
+            st.write("### 1. Moneyline (Match Result)")
+            m1, m2, m3 = st.columns(3)
+            m1.metric(f"{home_team} Win", f"{home_win:.1f}%", f"{int(home_win)}¢")
+            m2.metric("Draw", f"{draw:.1f}%", f"{int(draw)}¢")
+            m3.metric(f"{away_team} Win", f"{away_win:.1f}%", f"{int(away_win)}¢")
+
+            st.write("### 2. Spreads")
+            s1, s2 = st.columns(2)
+            s1.metric(f"{home_team} -1.5", f"{home_cover_15:.1f}%", f"{int(home_cover_15)}¢")
+            s2.metric(f"{away_team} +1.5", f"{away_cover_15:.1f}%", f"{int(away_cover_15)}¢")
+
+            st.write("### 3. Totals (2.5 Goals)")
+            t1, t2 = st.columns(2)
+            t1.metric("Over 2.5 Goals", f"{over_25:.1f}%", f"{int(over_25)}¢")
+            t2.metric("Under 2.5 Goals", f"{under_25:.1f}%", f"{int(under_25)}¢")
+
+            st.write("### 4. Both Teams to Score?")
+            b1, b2 = st.columns(2)
+            b1.metric("YES", f"{btts_yes:.1f}%", f"{int(btts_yes)}¢")
+            b2.metric("NO", f"{btts_no:.1f}%", f"{int(btts_no)}¢")
+
+            st.write("### 5. Team Totals (> 0.5 Goals)")
+            tt1, tt2 = st.columns(2)
+            tt1.metric(f"{home_team} Over 0.5", f"{home_over_05:.1f}%", f"{int(home_over_05)}¢")
+            tt2.metric(f"{away_team} Over 0.5", f"{away_over_05:.1f}%", f"{int(away_over_05)}¢")
 
 except Exception as e:
-    st.error(f"Error fetching data: {e}")
+    st.error(f"Error executing predictions: {e}")
