@@ -7,7 +7,7 @@ import math
 st.set_page_config(page_title="AI Game Line Predictor - Sports & Esports", page_icon="🎮", layout="centered")
 
 st.title("🏆 AI Multi-Sport & Esports Game Line Predictor")
-st.write("Predict Moneyline, Spreads, Over/Under Totals, and Exact Scores across Football, VALORANT, CS2, and LoL.")
+st.write("Predict Moneyline, Spreads, Over/Under Totals, and Exact Scores across Football, VALORANT, CS2, and League of Legends.")
 
 # Category Selector
 category = st.radio("Select Category", ["⚽ Football", "🎯 VALORANT", "🔫 Counter-Strike 2", "⚔️ League of Legends"], horizontal=True)
@@ -113,10 +113,9 @@ if category == "⚽ Football":
         st.error(f"Error loading football data: {e}")
 
 # ---------------------------------------------------------
-# ESPORTS PREDICTION ENGINE (VALORANT, CS2, LOL)
+# ESPORTS PREDICTION ENGINE (VALORANT, CS2, LOL DEMACIA CUP)
 # ---------------------------------------------------------
 else:
-    # Latest 2026 Rosters & Tournament Databases
     ESPORTS_TEAMS = {
         "🎯 VALORANT": {
             "Tournament": "VALORANT Champions 2026",
@@ -135,11 +134,50 @@ else:
             }
         },
         "⚔️ League of Legends": {
-            "Tournament": "LoL World Championship 2026",
+            "Tournament": "Demacia Cup & Global Invitational (DCGI)",
             "Teams": {
-                "Gen.G": 1920, "Bilibili Gaming": 1890, "Hanwha Life Esports": 1880, "T1": 1900,
-                "Top Esports": 1840, "G2 Esports": 1810, "Dplus KIA": 1820, "Cloud9": 1770,
-                "Team Liquid": 1760, "Karmine Corp": 1750, "CTBC Flying Oyster": 1720, "Movistar KOI": 1710
+                # LCK Teams
+                "Gen.G": 1920,
+                "T1": 1900,
+                "Hanwha Life Esports": 1880,
+                "KT Rolster": 1800,
+                "BNK FEARX": 1750,
+                "HANJIN BRION": 1720,
+                "Dplus KIA": 1820,
+
+                # LPL Teams (17 Demacia Cup Franchises)
+                "Bilibili Gaming (BLG)": 1890,
+                "Top Esports (TES)": 1840,
+                "JD Gaming (JDG)": 1830,
+                "Weibo Gaming (WBG)": 1820,
+                "LNG Esports": 1790,
+                "Anyone's Legend (AL)": 1780,
+                "Invictus Gaming (iG)": 1770,
+                "Team WE": 1750,
+                "FunPlus Phoenix (FPX)": 1740,
+                "Ninjas in Pyjamas (NIP)": 1730,
+                "EDward Gaming (EDG)": 1730,
+                "LGD Gaming": 1710,
+                "Royal Never Give Up (RNG)": 1700,
+                "Rare Atom (RA)": 1690,
+                "ThunderTalk Gaming (TT)": 1690,
+                "Ultra Prime (UP)": 1680,
+                "Oh My God (OMG)": 1680,
+
+                # International Global Invitational Invited Teams
+                "Natus Vincere (NAVI)": 1750,
+                "Team Vitality": 1740,
+                "G2 Esports": 1810,
+                "Shopify Rebellion": 1710,
+                "FlyQuest": 1760,
+                "Cloud9": 1770,
+                "Team Liquid": 1760,
+                "GAM Esports": 1720,
+                "RED Canids": 1700,
+
+                # Streamer / Qualifier Teams
+                "ZSM (Ale, Ning, FoFo, Lwx, Southwind)": 1660,
+                "FRK (fearness, H4cker, Cryin, Smlz, Wink)": 1650
             }
         }
     }
@@ -160,11 +198,10 @@ else:
     if team_a == team_b:
         st.warning("Please select two distinct teams.")
     else:
-        # Elo Rating Calculation to Map Win Rate (p)
+        # Elo Rating Calculation
         elo_a = esport_data["Teams"][team_a]
         elo_b = esport_data["Teams"][team_b]
         
-        # Base single map win probability for Team A
         p = 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
         q = 1 - p
 
