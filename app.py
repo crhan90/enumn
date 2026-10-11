@@ -7,7 +7,7 @@ import requests
 from io import StringIO
 
 # ---------------------------------------------------------
-# 1. PAGE CONFIGURATION & HIGH-CONTRAST DARK THEME
+# 1. PAGE CONFIGURATION & DARK THEME
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APEX ANALYTICS PRO | AI Odds Engine",
@@ -16,7 +16,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-Contrast CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -133,7 +132,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. SHORT-ID EMBLEM & LOGO MAPPER (ACCURATE 2026/2027 EPL)
+# 2. SHORT-ID EMBLEM & LOGO MAPPER
 # ---------------------------------------------------------
 FOOTBALL_LOGOS = {
     "359": ["Arsenal"],
@@ -183,12 +182,14 @@ ESPORTS_LOGOS = {
 
 def get_team_logo(team_name):
     for id_code, aliases in FOOTBALL_LOGOS.items():
-        if any(alias.lower() in team_name.lower() or team_name.lower() in alias.lower() for alias in aliases):
-            return f"https://a.espncdn.com/i/teamlogos/soccer/500/{id_code}.png"
+        for alias in aliases:
+            if alias.lower() in team_name.lower() or team_name.lower() in alias.lower():
+                return f"https://a.espncdn.com/i/teamlogos/soccer/500/{id_code}.png"
             
     for id_code, aliases in ESPORTS_LOGOS.items():
-        if any(alias.lower() in team_name.lower() or team_name.lower() in alias.lower() for alias in aliases):
-            return f"https://a.espncdn.com/i/teamlogos/eSports/500/{id_code}.png"
+        for alias in aliases:
+            if alias.lower() in team_name.lower() or team_name.lower() in alias.lower():
+                return f"https://a.espncdn.com/i/teamlogos/eSports/500/{id_code}.png"
 
     clean_name = team_name.split('(')[0].strip().replace(" ", "+")
     return f"https://ui-avatars.com/api/?name={clean_name}&background=0f172a&color=38bdf8&size=128&bold=true"
@@ -241,7 +242,7 @@ tab_foot, tab_val, tab_cs, tab_lol, tab_poly = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# 5. FOOTBALL ENGINE (OFFICIAL 2026/2027 EPL TEAMS)
+# 5. FOOTBALL ENGINE
 # ---------------------------------------------------------
 with tab_foot:
     LEAGUES = {
@@ -254,7 +255,7 @@ with tab_foot:
     selected_league = st.selectbox("Select Competition", list(LEAGUES.keys()), key="foot_league")
     league_code = LEAGUES[selected_league]
 
-    # Official 2026/2027 Premier League Teams
+    # Full 2026/2027 Premier League 20 Teams dataset
     FALLBACK_EPL = pd.DataFrame([
         {"HomeTeam": "Arsenal", "AwayTeam": "Chelsea", "FTHG": 2, "FTAG": 1},
         {"HomeTeam": "Liverpool", "AwayTeam": "Man City", "FTHG": 2, "FTAG": 2},
@@ -319,10 +320,61 @@ with tab_foot:
         if st.button("🚀 RUN FOOTBALL AI PREDICTION ENGINE", type="primary"):
             hg = df_foot[df_foot['HomeTeam'] == home_t]
             ag = df_foot[df_foot['AwayTeam'] == away_t]
-            avg_h = df_foot['FTHG'].mean() or 1.35
-            avg_a = df_foot['FTAG'].mean() or 1.10
+            avg_h = df_foot['FTHG'].mean() if len(df_foot) > 0 else 1.35
+            avg_a = df_foot['FTAG'].mean() if len(df_foot) > 0 else 1.10
 
-            h_att = (hg['FTHG'].mean() if len(hg) > 0 else avg_h) / avg_h
-            h_def = (hg['FTAG'].mean() if len(hg) > 0 else avg_a) / avg_a
-            a_att = (ag['FTAG'].mean() if len(ag) > 0 else avg_a) / avg_a
-            a_def = (ag
+            h_goals_for = hg['FTHG'].mean() if len(hg) > 0 else avg_h
+            h_goals_against = hg['FTAG'].mean() if len(hg) > 0 else avg_a
+            a_goals_for = ag['FTAG'].mean() if len(ag) > 0 else avg_a
+            a_goals_against = ag['FTHG'].mean() if len(ag) > 0 else avg_h
+
+            h_att = h_goals_for / avg_h
+            h_def = h_goals_against / avg_a
+            a_att = a_goals_for / avg_a
+            a_def = a_goals_against / avg_h
+
+            exp_h = h_att * a_def * avg_h
+            exp_a = a_att * h_def * avg_a
+
+            max_g = 8
+            prob_m = np.zeros((max_g, max_g))
+            for i in range(max_g):
+                for j in range(max_g):
+                    p_i = (exp_h**i * np.exp(-exp_h)) / math.factorial(i)
+                    p_j = (exp_a**j * np.exp(-exp_a)) / math.factorial(j)
+                    prob_m[i, j] = p_i * p_j
+            prob_m /= prob_m.sum()
+
+            p_home = np.sum(np.tril(prob_m, -1))
+            p_draw = np.sum(np.diag(prob_m))
+            p_away = np.sum(np.triu(prob_m, 1))
+
+            score_list = [((i, j), prob_m[i, j]) for i in range(max_g) for j in range(max_g)]
+            score_list.sort(key=lambda x: x[1], reverse=True)
+            top_scores = score_list[:4]
+
+            cover_15 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i - j >= 2)
+            over_25 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i + j > 2.5)
+            btts_yes = np.sum(prob_m[1:, 1:])
+
+            st.markdown("### 🎯 Predicted Exact Scorelines")
+            sc_cols = st.columns(4)
+            for idx, ((gh, ga), prob) in enumerate(top_scores):
+                badge_class = "score-card score-card-top" if idx == 0 else "score-card"
+                star = "★ MOST LIKELY" if idx == 0 else f"RANK #{idx+1}"
+                sc_cols[idx].markdown(f"""
+                <div class="{badge_class}">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">{star}</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #f8fafc;">{gh} - {ga}</div>
+                    <div style="color: #cbd5e1; font-size: 0.9rem;">{prob*100:.1f}% Prob</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.markdown("### 📊 Win Probability Distribution")
+            st.write(f"**{home_t} ({p_home*100:.1f}%)** vs **Draw ({p_draw*100:.1f}%)** vs **{away_t} ({p_away*100:.1f}%)**")
+            st.progress(int(p_home * 100))
+
+            st.markdown("### 💸 Moneyline Odds")
+            m1, m2, m3 = st.columns(3)
+            m1.metric(
