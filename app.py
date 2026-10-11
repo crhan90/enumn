@@ -2,63 +2,158 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import math
+import json
+import requests
+import plotly.graph_objects as go
 
-# 1. Page Configuration & Custom CSS Injection
+# ---------------------------------------------------------
+# 1. PAGE CONFIGURATION & CUSTOM DARK CYBER THEME
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="APEX Analytics | AI Sports & Esports Odds Engine",
+    page_title="APEX ANALYTICS PRO | AI Odds Engine",
     page_icon="⚡",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Dark Glassmorphism Styling
+# Custom High-End Dark Glassmorphism CSS Injector
 st.markdown("""
 <style>
-    .main {
-        background-color: #0b0e14;
-    }
-    h1, h2, h3, h4, label {
-        color: #f1f5f9 !important;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+    html, body, [class*="css"] {
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    
-    .vs-banner {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 24px;
-        text-align: center;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-        margin-bottom: 25px;
+    .stApp {
+        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #080a0f 60%, #030712 100%);
     }
     
-    .team-logo-img {
-        width: 72px;
-        height: 72px;
-        object-fit: contain;
-        filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.5));
+    /* Top Hero Header */
+    .hero-container {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 24px 32px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        margin-bottom: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    
-    .score-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
+    .hero-title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .status-badge {
+        background: rgba(34, 197, 94, 0.15);
+        border: 1px solid rgba(34, 197, 94, 0.4);
+        color: #4ade80;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #22c55e;
     }
 
-    .stProgress > div > div > div > div {
-        background-image: linear-gradient(to right, #3b82f6 , #06b6d4);
+    /* VS Matchup Banner */
+    .vs-card {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.6));
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 20px;
+        padding: 28px;
+        text-align: center;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+        margin-bottom: 25px;
+        position: relative;
+        overflow: hidden;
+    }
+    .team-logo-img {
+        width: 85px;
+        height: 85px;
+        object-fit: contain;
+        filter: drop-shadow(0px 6px 15px rgba(0, 0, 0, 0.6));
+        transition: transform 0.3s ease;
+    }
+    .team-logo-img:hover {
+        transform: scale(1.08);
+    }
+
+    /* Primary Buttons */
+    .stButton > button {
+        width: 100%;
+        background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%);
+        border: none;
+        border-radius: 12px;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+        transition: all 0.3s ease !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(56, 189, 248, 0.5);
+    }
+
+    /* Scoreline Cards */
+    .score-card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    .score-card-top {
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.15));
+        border: 1px solid #38bdf8;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background: rgba(15, 23, 42, 0.6);
+        padding: 8px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        color: #94a3b8;
+        font-weight: 600;
+        padding: 8px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        border: 1px solid #38bdf8 !important;
+        color: #38bdf8 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# LOGO MAPPING HELPER
+# 2. LOGO MAPPING & HELPER UTILITIES
 # ---------------------------------------------------------
 def get_team_logo(team_name):
     logo_map = {
-        # Football
+        # Premier League & Football
         "Arsenal": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
         "Chelsea": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png",
         "Liverpool": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png",
@@ -85,23 +180,87 @@ def get_team_logo(team_name):
         "FaZe Clan": "https://a.espncdn.com/i/teamlogos/eSports/500/210.png",
         "Paper Rex": "https://a.espncdn.com/i/teamlogos/eSports/500/360.png"
     }
-    
     if team_name in logo_map:
         return logo_map[team_name]
-    
     clean_name = team_name.split('(')[0].strip().replace(" ", "+")
-    return f"https://ui-avatars.com/api/?name={clean_name}&background=1e293b&color=38bdf8&size=128&bold=true"
+    return f"https://ui-avatars.com/api/?name={clean_name}&background=0f172a&color=38bdf8&size=128&bold=true"
+
+def convert_odds(prob, format_type):
+    if prob <= 0:
+        return "N/A"
+    if format_type == "Decimal Odds":
+        return f"{1 / prob:.2f}"
+    elif format_type == "American Odds":
+        if prob >= 0.5:
+            return f"-{int((prob / (1 - prob)) * 100)}"
+        else:
+            return f"+{int(((1 - prob) / prob) * 100)}"
+    return f"{prob * 100:.1f}% ({int(prob * 100)}¢)"
+
+def render_plotly_gauge(team_a, team_b, prob_a):
+    prob_b = 1.0 - prob_a
+    fig = go.Figure(go.Pie(
+        labels=[team_a, team_b],
+        values=[prob_a * 100, prob_b * 100],
+        hole=0.72,
+        marker=dict(colors=['#38bdf8', '#818cf8']),
+        textinfo='label+percent',
+        textfont=dict(color='#f8fafc', size=14, family='Inter'),
+        hoverinfo='label+value'
+    ))
+    fig.update_layout(
+        showlegend=False,
+        height=220,
+        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        annotations=[dict(
+            text=f"<b>{prob_a*100:.0f}%</b>",
+            x=0.5, y=0.5,
+            font_size=28,
+            font_color='#38bdf8',
+            showarrow=False
+        )]
+    )
+    return fig
 
 # ---------------------------------------------------------
-# HEADER & NAVIGATION
+# 3. SIDEBAR CONTROLS & KELLY WAGER CALCULATOR
 # ---------------------------------------------------------
-st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>⚡ APEX ANALYTICS</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.95rem; margin-bottom: 25px;'>Next-Gen Predictive Odds Engine • Sports & Esports</p>", unsafe_allow_html=True)
+st.sidebar.markdown("### ⚙️ Engine Settings")
+odds_format = st.sidebar.selectbox("Odds Format Display", ["Probabilities (%) / Polymarket (¢)", "Decimal Odds", "American Odds"])
 
-tab_foot, tab_val, tab_cs, tab_lol = st.tabs(["⚽ Football", "🎯 VALORANT", "🔫 Counter-Strike 2", "⚔️ League of Legends"])
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💰 Bankroll & Kelly Calculator")
+bankroll = st.sidebar.number_input("Total Bankroll ($)", min_value=10, value=1000, step=50)
+fractional_kelly = st.sidebar.slider("Kelly Fraction", 0.1, 1.0, 0.25, help="0.25 = Quarter Kelly (Recommended for safety)")
+
+st.sidebar.markdown("---")
+st.sidebar.caption("⚡ **APEX Engine v2.6** • Powered by Poisson xG & Markov State Chain Models")
 
 # ---------------------------------------------------------
-# 1. FOOTBALL ENGINE (WITH SCORELINE PREDICTION)
+# 4. HERO HEADER
+# ---------------------------------------------------------
+st.markdown("""
+<div class="hero-container">
+    <div>
+        <h1 class="hero-title">⚡ APEX ANALYTICS PRO</h1>
+        <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 0.95rem;">
+            Multi-Market Predictive AI Engine for Global Sports & Esports
+        </p>
+    </div>
+    <div class="status-badge">
+        <div class="pulse-dot"></div> LIVE AI MODELS ACTIVE
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+tab_foot, tab_val, tab_cs, tab_lol, tab_poly = st.tabs([
+    "⚽ Football (2026/27)", "🎯 VALORANT", "🔫 Counter-Strike 2", "⚔️ LoL (DCGI)", "🌐 Live Polymarket Markets"
+])
+
+# ---------------------------------------------------------
+# 5. FOOTBALL PREDICTION TAB
 # ---------------------------------------------------------
 with tab_foot:
     LEAGUES = {
@@ -112,7 +271,6 @@ with tab_foot:
         "🇩🇪 German Bundesliga": "D1",
         "🇫🇷 French Ligue 1": "F1"
     }
-
     selected_league = st.selectbox("Select Competition", list(LEAGUES.keys()), key="foot_league")
     league_code = LEAGUES[selected_league]
 
@@ -155,26 +313,26 @@ with tab_foot:
             logo_a = get_team_logo(away_t)
 
             st.markdown(f"""
-            <div class="vs-banner">
+            <div class="vs-card">
                 <div style="display: flex; justify-content: space-around; align-items: center;">
-                    <div style="text-align: center;">
+                    <div style="text-align: center; flex: 1;">
                         <img src="{logo_h}" class="team-logo-img"><br>
-                        <strong style="font-size: 1.1rem; color: #f8fafc;">{home_t}</strong><br>
-                        <span style="color: #64748b; font-size: 0.8rem;">HOME</span>
+                        <strong style="font-size: 1.2rem; color: #f8fafc;">{home_t}</strong><br>
+                        <span style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">HOME</span>
                     </div>
-                    <div>
-                        <span style="font-size: 1.8rem; font-weight: 800; color: #38bdf8;">VS</span>
+                    <div style="flex: 0.5;">
+                        <span style="font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VS</span>
                     </div>
-                    <div style="text-align: center;">
+                    <div style="text-align: center; flex: 1;">
                         <img src="{logo_a}" class="team-logo-img"><br>
-                        <strong style="font-size: 1.1rem; color: #f8fafc;">{away_t}</strong><br>
-                        <span style="color: #64748b; font-size: 0.8rem;">AWAY</span>
+                        <strong style="font-size: 1.2rem; color: #f8fafc;">{away_t}</strong><br>
+                        <span style="color: #818cf8; font-size: 0.8rem; font-weight: 700;">AWAY</span>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button("🚀 Calculate Football Predictions", type="primary", use_container_width=True):
+            if st.button("🚀 RUN FOOTBALL AI PREDICTION ENGINE", type="primary"):
                 hg = df_foot[df_foot['HomeTeam'] == home_t]
                 ag = df_foot[df_foot['AwayTeam'] == away_t]
                 avg_h = df_foot['FTHG'].mean() or 1.35
@@ -197,58 +355,62 @@ with tab_foot:
                         prob_m[i, j] = p_i * p_j
                 prob_m /= prob_m.sum()
 
-                # Moneyline
-                home_win = np.sum(np.tril(prob_m, -1)) * 100
-                draw = np.sum(np.diag(prob_m)) * 100
-                away_win = np.sum(np.triu(prob_m, 1)) * 100
+                p_home = np.sum(np.tril(prob_m, -1))
+                p_draw = np.sum(np.diag(prob_m))
+                p_away = np.sum(np.triu(prob_m, 1))
 
-                # Extract Top 4 Most Likely Exact Scorelines
-                score_list = []
-                for i in range(max_g):
-                    for j in range(max_g):
-                        score_list.append(((i, j), prob_m[i, j]))
+                # Exact Score Ranker
+                score_list = [((i, j), prob_m[i, j]) for i in range(max_g) for j in range(max_g)]
                 score_list.sort(key=lambda x: x[1], reverse=True)
                 top_scores = score_list[:4]
 
-                # Market Odds
-                cover_15 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i - j >= 2) * 100
-                over_25 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i + j > 2.5) * 100
-                btts_yes = np.sum(prob_m[1:, 1:]) * 100
+                # Market Lines
+                cover_15 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i - j >= 2)
+                over_25 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i + j > 2.5)
+                btts_yes = np.sum(prob_m[1:, 1:])
 
-                # ---------------- DISPLAY RESULTS ----------------
-                st.subheader("🎯 Predicted Exact Scorelines")
+                # --- DISPLAY Visual Charts & Cards ---
+                st.markdown("### 🎯 Predicted Exact Scorelines")
                 sc_cols = st.columns(4)
                 for idx, ((gh, ga), prob) in enumerate(top_scores):
-                    sc_cols[idx].metric(
-                        label=f"Rank #{idx+1} Score",
-                        value=f"{gh} - {ga}",
-                        delta=f"{prob*100:.1f}% Prob"
-                    )
+                    badge_class = "score-card score-card-top" if idx == 0 else "score-card"
+                    star = "★ MOST LIKELY" if idx == 0 else f"RANK #{idx+1}"
+                    sc_cols[idx].markdown(f"""
+                    <div class="{badge_class}">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">{star}</div>
+                        <div style="font-size: 1.8rem; font-weight: 800; color: #f8fafc;">{gh} - {ga}</div>
+                        <div style="color: #94a3b8; font-size: 0.9rem;">{prob*100:.1f}% Prob</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                st.subheader("📊 Match Result Odds (Moneyline)")
-                m1, m2, m3 = st.columns(3)
-                m1.metric(f"{home_t} Win", f"{home_win:.1f}%", f"{int(home_win)}¢")
-                m2.metric("Draw", f"{draw:.1f}%", f"{int(draw)}¢")
-                m3.metric(f"{away_t} Win", f"{away_win:.1f}%", f"{int(away_win)}¢")
+                st.markdown("---")
+                left_col, right_col = st.columns([1, 1])
 
-                st.write("**Win Probability Gauge**")
-                st.progress(int(home_win))
+                with left_col:
+                    st.markdown("### 📊 Win Probability Distribution")
+                    st.plotly_chart(render_plotly_gauge(home_t, away_t, p_home), use_container_width=True)
 
-                st.subheader("🎯 Primary Game Lines")
-                s1, s2, s3 = st.columns(3)
-                s1.metric(f"{home_t} -1.5 Spread", f"{cover_15:.1f}%", f"{int(cover_15)}¢")
-                s2.metric("Over 2.5 Total Goals", f"{over_25:.1f}%", f"{int(over_25)}¢")
-                s3.metric("Both Teams Score (BTTS)", f"{btts_yes:.1f}%", f"{int(btts_yes)}¢")
+                with right_col:
+                    st.markdown("### 💸 Moneyline Odds")
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric(f"{home_t} Win", convert_odds(p_home, odds_format))
+                    m2.metric("Draw", convert_odds(p_draw, odds_format))
+                    m3.metric(f"{away_t} Win", convert_odds(p_away, odds_format))
+
+                    st.markdown("### 🎲 Game Line Markets")
+                    s1, s2, s3 = st.columns(3)
+                    s1.metric(f"{home_t} -1.5 Spread", convert_odds(cover_15, odds_format))
+                    s2.metric("Over 2.5 Total Goals", convert_odds(over_25, odds_format))
+                    s3.metric("BTTS Yes", convert_odds(btts_yes, odds_format))
 
     except Exception as e:
-        st.error(f"Unable to load data: {e}")
+        st.error(f"Error loading football match dataset: {e}")
 
 # ---------------------------------------------------------
-# 2. ESPORTS ENGINE (WITH EXACT SERIES SCORE PREDICTION)
+# 6. ESPORTS REUSABLE ENGINE FUNCTION
 # ---------------------------------------------------------
 def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
     st.caption(f"🏆 Active Tournament: **{tournament_name}**")
-    
     teams_list = sorted(list(teams_dict.keys()))
     col1, col2, col3 = st.columns([2, 2, 1])
     
@@ -264,120 +426,82 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
         logo_b = get_team_logo(t_b)
 
         st.markdown(f"""
-        <div class="vs-banner">
+        <div class="vs-card">
             <div style="display: flex; justify-content: space-around; align-items: center;">
-                <div style="text-align: center;">
+                <div style="text-align: center; flex: 1;">
                     <img src="{logo_a}" class="team-logo-img"><br>
-                    <strong style="font-size: 1.1rem; color: #f8fafc;">{t_a}</strong>
+                    <strong style="font-size: 1.2rem; color: #f8fafc;">{t_a}</strong>
                 </div>
-                <div>
-                    <span style="font-size: 1.8rem; font-weight: 800; color: #38bdf8;">VS</span><br>
-                    <span style="color: #64748b; font-size: 0.75rem;">{fmt} MATCH</span>
+                <div style="flex: 0.5;">
+                    <span style="font-size: 2rem; font-weight: 900; color: #38bdf8;">VS</span><br>
+                    <span style="color: #64748b; font-size: 0.75rem; font-weight: 700;">{fmt} SERIES</span>
                 </div>
-                <div style="text-align: center;">
+                <div style="text-align: center; flex: 1;">
                     <img src="{logo_b}" class="team-logo-img"><br>
-                    <strong style="font-size: 1.1rem; color: #f8fafc;">{t_b}</strong>
+                    <strong style="font-size: 1.2rem; color: #f8fafc;">{t_b}</strong>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button(f"🚀 Predict {sport_name} Series", type="primary", use_container_width=True, key=f"{tab_key}_btn"):
+        if st.button(f"🚀 RUN {sport_name.upper()} AI MARKOV ENGINE", type="primary", key=f"{tab_key}_btn"):
             elo_a = teams_dict[t_a]
             elo_b = teams_dict[t_b]
-            
             p = 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
             q = 1 - p
 
-            st.write(f"**Single Map Win Rate:** `{t_a}` **{p*100:.1f}%** vs **{q*100:.1f}%** `{t_b}`")
-            st.progress(int(p * 100))
+            left_c, right_c = st.columns([1, 1])
+            with left_c:
+                st.markdown("### 📊 Map Win Rate Gauge")
+                st.plotly_chart(render_plotly_gauge(t_a, t_b, p), use_container_width=True)
 
-            st.markdown("---")
+            with right_c:
+                st.markdown("### 🎯 Series Moneyline")
+                if fmt == "Bo3":
+                    s_2_0 = p ** 2
+                    s_2_1 = 2 * (p ** 2) * q
+                    s_1_2 = 2 * (q ** 2) * p
+                    s_0_2 = q ** 2
+                    p_win_a = s_2_0 + s_2_1
+                    p_win_b = s_1_2 + s_0_2
 
-            if fmt == "Bo3":
-                s_2_0 = p ** 2
-                s_2_1 = 2 * (p ** 2) * q
-                s_1_2 = 2 * (q ** 2) * p
-                s_0_2 = q ** 2
+                    m1, m2 = st.columns(2)
+                    m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
+                    m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
 
-                win_a = (s_2_0 + s_2_1) * 100
-                win_b = (s_1_2 + s_0_2) * 100
-                over_25 = (s_2_1 + s_1_2) * 100
+                    st.markdown("### 🎲 Exact Series Score Probability Matrix")
+                    sc1, sc2, sc3, sc4 = st.columns(4)
+                    sc1.metric("2 - 0", convert_odds(s_2_0, odds_format))
+                    sc2.metric("2 - 1", convert_odds(s_2_1, odds_format))
+                    sc3.metric("1 - 2", convert_odds(s_1_2, odds_format))
+                    sc4.metric("0 - 2", convert_odds(s_0_2, odds_format))
 
-                # Determine Most Likely Score
-                scores = [
-                    (f"{t_a} 2 - 0 {t_b}", s_2_0),
-                    (f"{t_a} 2 - 1 {t_b}", s_2_1),
-                    (f"{t_b} 2 - 1 {t_a}", s_1_2),
-                    (f"{t_b} 2 - 0 {t_a}", s_0_2)
-                ]
-                scores.sort(key=lambda x: x[1], reverse=True)
-                top_score = scores[0]
+                else:
+                    s_3_0 = p ** 3
+                    s_3_1 = 3 * (p ** 3) * q
+                    s_3_2 = 6 * (p ** 3) * (q ** 2)
+                    s_2_3 = 6 * (q ** 3) * (p ** 2)
+                    s_1_3 = 3 * (q ** 3) * p
+                    s_0_3 = q ** 3
+                    p_win_a = s_3_0 + s_3_1 + s_3_2
+                    p_win_b = s_2_3 + s_1_3 + s_0_3
 
-                st.info(f"🎯 **Predicted Most Likely Exact Score:** **{top_score[0]}** ({top_score[1]*100:.1f}% probability)")
+                    m1, m2 = st.columns(2)
+                    m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
+                    m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
 
-                st.subheader("📊 Match Winner (Moneyline)")
-                m1, m2 = st.columns(2)
-                m1.metric(f"{t_a} Series Win", f"{win_a:.1f}%", f"{int(win_a)}¢")
-                m2.metric(f"{t_b} Series Win", f"{win_b:.1f}%", f"{int(win_b)}¢")
-
-                st.subheader("🎯 Spreads & Total Maps")
-                p1, p2 = st.columns(2)
-                p1.metric(f"{t_a} -1.5 Map Sweep (2-0)", f"{s_2_0*100:.1f}%", f"{int(s_2_0*100)}¢")
-                p2.metric("Over 2.5 Maps (Goes to Map 3)", f"{over_25:.1f}%", f"{int(over_25)}¢")
-
-                st.subheader("🎲 Exact Series Score Matrix")
-                sc1, sc2, sc3, sc4 = st.columns(4)
-                sc1.metric("2 - 0", f"{s_2_0*100:.1f}%")
-                sc2.metric("2 - 1", f"{s_2_1*100:.1f}%")
-                sc3.metric("1 - 2", f"{s_1_2*100:.1f}%")
-                sc4.metric("0 - 2", f"{s_0_2*100:.1f}%")
-
-            else:
-                s_3_0 = p ** 3
-                s_3_1 = 3 * (p ** 3) * q
-                s_3_2 = 6 * (p ** 3) * (q ** 2)
-                s_2_3 = 6 * (q ** 3) * (p ** 2)
-                s_1_3 = 3 * (q ** 3) * p
-                s_0_3 = q ** 3
-
-                win_a = (s_3_0 + s_3_1 + s_3_2) * 100
-                win_b = (s_2_3 + s_1_3 + s_0_3) * 100
-                over_35 = (s_3_1 + s_3_2 + s_2_3 + s_1_3) * 100
-
-                scores = [
-                    (f"{t_a} 3 - 0 {t_b}", s_3_0),
-                    (f"{t_a} 3 - 1 {t_b}", s_3_1),
-                    (f"{t_a} 3 - 2 {t_b}", s_3_2),
-                    (f"{t_b} 3 - 2 {t_a}", s_2_3),
-                    (f"{t_b} 3 - 1 {t_a}", s_1_3),
-                    (f"{t_b} 3 - 0 {t_a}", s_0_3)
-                ]
-                scores.sort(key=lambda x: x[1], reverse=True)
-                top_score = scores[0]
-
-                st.info(f"🎯 **Predicted Most Likely Exact Score:** **{top_score[0]}** ({top_score[1]*100:.1f}% probability)")
-
-                st.subheader("📊 Match Winner (Moneyline)")
-                m1, m2 = st.columns(2)
-                m1.metric(f"{t_a} Series Win", f"{win_a:.1f}%", f"{int(win_a)}¢")
-                m2.metric(f"{t_b} Series Win", f"{win_b:.1f}%", f"{int(win_b)}¢")
-
-                st.subheader("🎯 Spreads & Totals")
-                p1, p2 = st.columns(2)
-                p1.metric(f"{t_a} -1.5 Map Spread", f"{(s_3_0+s_3_1)*100:.1f}%")
-                p2.metric("Over 3.5 Total Maps", f"{over_35:.1f}%")
-
-                st.subheader("🎲 Exact Series Score Matrix")
-                sc1, sc2, sc3 = st.columns(3)
-                sc1.metric("3 - 0", f"{s_3_0*100:.1f}%")
-                sc2.metric("3 - 1", f"{s_3_1*100:.1f}%")
-                sc3.metric("3 - 2", f"{s_3_2*100:.1f}%")
-
-                sc4, sc5, sc6 = st.columns(3)
-                sc4.metric("2 - 3", f"{s_2_3*100:.1f}%")
-                sc5.metric("1 - 3", f"{s_1_3*100:.1f}%")
-                sc6.metric("0 - 3", f"{s_0_3*100:.1f}%")
+                    st.markdown("### 🎲 Exact Series Score Matrix")
+                    c_a, c_b = st.columns(2)
+                    with c_a:
+                        st.write(f"**{t_a} Scores**")
+                        st.write(f"• 3 - 0: **{convert_odds(s_3_0, odds_format)}**")
+                        st.write(f"• 3 - 1: **{convert_odds(s_3_1, odds_format)}**")
+                        st.write(f"• 3 - 2: **{convert_odds(s_3_2, odds_format)}**")
+                    with c_b:
+                        st.write(f"**{t_b} Scores**")
+                        st.write(f"• 2 - 3: **{convert_odds(s_2_3, odds_format)}**")
+                        st.write(f"• 1 - 3: **{convert_odds(s_1_3, odds_format)}**")
+                        st.write(f"• 0 - 3: **{convert_odds(s_0_3, odds_format)}**")
 
 # VALORANT TAB
 with tab_val:
@@ -397,20 +521,76 @@ with tab_cs:
     }
     render_esports_tab("Counter-Strike 2", "CS2 ESL Pro League / Major 2026", cs_teams, "cs")
 
-# LEAGUE OF LEGENDS TAB (12 Official DCGI Group Stage Teams)
+# LEAGUE OF LEGENDS TAB
 with tab_lol:
-    dcgi_group_stage_teams = {
-        "KT Rolster": 1820,
-        "BNK FEARX": 1760,
-        "HANJIN BRION": 1730,
-        "JD Gaming": 1840,
-        "Team WE": 1760,
-        "LGD Gaming": 1720,
-        "Natus Vincere (NAVI)": 1750,
-        "Team Vitality": 1740,
-        "Shopify Rebellion": 1730,
-        "FlyQuest": 1770,
-        "GAM Esports": 1720,
-        "RED Canids": 1700
+    dcgi_teams = {
+        "KT Rolster": 1820, "BNK FEARX": 1760, "HANJIN BRION": 1730, "JD Gaming": 1840,
+        "Team WE": 1760, "LGD Gaming": 1720, "Natus Vincere (NAVI)": 1750, "Team Vitality": 1740,
+        "Shopify Rebellion": 1730, "FlyQuest": 1770, "GAM Esports": 1720, "RED Canids": 1700
     }
-    render_esports_tab("League of Legends", "Demacia Cup Global Invitational (DCGI) Swiss & Group Stage", dcgi_group_stage_teams, "lol")
+    render_esports_tab("League of Legends", "Demacia Cup Global Invitational (DCGI) Group Stage", dcgi_teams, "lol")
+
+# ---------------------------------------------------------
+# 7. LIVE POLYMARKET FEEDS TAB
+# ---------------------------------------------------------
+with tab_poly:
+    st.subheader("🌐 Live Polymarket Prediction Markets")
+    st.caption("Real-time sports and esports prediction contracts fetched from Polymarket Gamma API")
+
+    @st.cache_data(ttl=300)
+    def fetch_live_polymarket_sports():
+        url = "https://gamma-api.polymarket.com/events"
+        tags = ["sports", "esports", "soccer", "league-of-legends", "cs2", "valorant"]
+        fetched_ids = set()
+        sports_events = []
+
+        for tag in tags:
+            try:
+                res = requests.get(url, params={
+                    "closed": "false", "active": "true", "tag_slug": tag,
+                    "limit": 6, "order": "volume24hr", "ascending": "false"
+                }, timeout=5)
+                if res.status_code == 200:
+                    for event in res.json():
+                        e_id = event.get("id")
+                        if e_id not in fetched_ids:
+                            fetched_ids.add(e_id)
+                            sports_events.append(event)
+            except Exception:
+                continue
+        return sports_events
+
+    if st.button("🔄 Refresh Live Polymarket Odds", key="poly_ref"):
+        st.cache_data.clear()
+
+    live_events = fetch_live_polymarket_sports()
+
+    if not live_events:
+        st.info("No active sports markets found right now on Polymarket.")
+    else:
+        for event in live_events[:8]:
+            title = event.get("title", "")
+            vol = float(event.get("volume24hr", 0))
+            slug = event.get("slug", "")
+            trade_url = f"https://polymarket.com/event/{slug}"
+
+            st.markdown(f"""
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 18px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #38bdf8; font-weight: 700; font-size: 0.8rem;">🔴 LIVE POLYMARKET CONTRACT</span>
+                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">24h Vol: ${vol:,.0f}</span>
+                </div>
+                <h4 style="margin: 8px 0; color: #f8fafc;">{title}</h4>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for m in event.get("markets", []):
+                if m.get("active") and not m.get("closed"):
+                    outcomes = json.loads(m.get("outcomes", "[]"))
+                    prices = [float(p) for p in json.loads(m.get("outcomePrices", "[]"))]
+
+                    if len(outcomes) >= 2 and len(prices) >= 2:
+                        col1, col2, col3 = st.columns([2, 2, 1])
+                        col1.metric(outcomes[0], f"{prices[0]*100:.1f}%", f"{int(prices[0]*100)}¢")
+                        col2.metric(outcomes[1], f"{prices[1]*100:.1f}%", f"{int(prices[1]*100)}¢")
+                        col3.link_button("Trade on Polymarket ↗", trade_url)
