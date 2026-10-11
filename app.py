@@ -6,7 +6,7 @@ import json
 import requests
 
 # ---------------------------------------------------------
-# 1. PAGE CONFIGURATION & HIGH-CONTRAST DARK THEME
+# 1. PAGE CONFIGURATION & CLEAN DARK THEME
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APEX ANALYTICS PRO | AI Odds Engine",
@@ -15,38 +15,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-Contrast Glassmorphism CSS
+# High-Contrast Glassmorphism Styling
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
     .stApp {
-        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #080a0f 60%, #030712 100%);
+        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #080a0f 65%, #030712 100%);
+        color: #f8fafc;
     }
     
-    /* High-Contrast Readability Rules */
-    p, span, label, [data-testid="stWidgetLabel"] p {
+    /* Ensure high contrast for all text elements */
+    .stMarkdown, .stText, label, p, span {
         color: #e2e8f0 !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
     }
-    h1, h2, h3, h4, h5, h6 {
-        color: #f8fafc !important;
-        font-weight: 700 !important;
-    }
-
-    /* Hero Banner */
+    
+    /* Hero Header */
     .hero-container {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.95));
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
         border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 20px;
         padding: 24px 32px;
         backdrop-filter: blur(16px);
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-        margin-bottom: 28px;
+        margin-bottom: 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -58,7 +50,6 @@ st.markdown("""
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
-        letter-spacing: -0.5px;
     }
     .status-badge {
         background: rgba(34, 197, 94, 0.2);
@@ -82,13 +73,13 @@ st.markdown("""
 
     /* VS Matchup Header Card */
     .vs-card {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8));
         border: 1px solid rgba(56, 189, 248, 0.35);
         border-radius: 20px;
-        padding: 28px;
+        padding: 24px;
         text-align: center;
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
-        margin-bottom: 25px;
+        margin-bottom: 24px;
     }
     .team-logo-img {
         width: 90px;
@@ -117,7 +108,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Primary Action Buttons */
+    /* Action Buttons */
     .stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%);
@@ -128,11 +119,6 @@ st.markdown("""
         font-size: 1.05rem !important;
         padding: 12px 24px !important;
         box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
-        transition: all 0.3s ease !important;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(56, 189, 248, 0.5);
     }
 
     /* Exact Score Cards */
@@ -152,11 +138,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. LOGO MAPPING & HELPER UTILITIES
+# 2. EMBLEM & LOGO MAPPER
 # ---------------------------------------------------------
 def get_team_logo(team_name):
     logo_map = {
-        # Football (Premier League & Top Europe)
+        # Premier League
         "Man City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
         "Manchester City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
         "Man United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
@@ -174,55 +160,4 @@ def get_team_logo(team_name):
         "Fulham": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png",
         "Brentford": "https://a.espncdn.com/i/teamlogos/soccer/500/337.png",
         "Bournemouth": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png",
-        "Crystal Palace": "https://a.espncdn.com/i/teamlogos/soccer/500/384.png",
-        "Wolves": "https://a.espncdn.com/i/teamlogos/soccer/500/380.png",
-        "Nott'm Forest": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png",
-        "Real Madrid": "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",
-        "Barcelona": "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",
-
-        # LoL Worlds 2026 Qualified Teams
-        "Gen.G": "https://a.espncdn.com/i/teamlogos/eSports/500/305.png",
-        "Hanwha Life Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/310.png",
-        "T1": "https://a.espncdn.com/i/teamlogos/eSports/500/300.png",
-        "Dplus KIA": "https://a.espncdn.com/i/teamlogos/eSports/500/304.png",
-        "Bilibili Gaming (BLG)": "https://a.espncdn.com/i/teamlogos/eSports/500/331.png",
-        "Top Esports (TES)": "https://a.espncdn.com/i/teamlogos/eSports/500/332.png",
-        "Invictus Gaming (iG)": "https://a.espncdn.com/i/teamlogos/eSports/500/325.png",
-        "G2 Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/222.png",
-        "Team Liquid Alienware": "https://a.espncdn.com/i/teamlogos/eSports/500/209.png",
-        "Cloud9": "https://a.espncdn.com/i/teamlogos/eSports/500/202.png",
-
-        # CS2 & Valorant
-        "Team Spirit": "https://a.espncdn.com/i/teamlogos/eSports/500/350.png",
-        "Team Vitality": "https://a.espncdn.com/i/teamlogos/eSports/500/255.png",
-        "FaZe Clan": "https://a.espncdn.com/i/teamlogos/eSports/500/210.png",
-        "Natus Vincere (NAVI)": "https://a.espncdn.com/i/teamlogos/eSports/500/201.png",
-        "Paper Rex": "https://a.espncdn.com/i/teamlogos/eSports/500/360.png",
-        "Fnatic": "https://a.espncdn.com/i/teamlogos/eSports/500/203.png",
-        "100 Thieves": "https://a.espncdn.com/i/teamlogos/eSports/500/230.png",
-        "NRG": "https://a.espncdn.com/i/teamlogos/eSports/500/220.png"
-    }
-
-    if team_name in logo_map:
-        return logo_map[team_name]
-    
-    for key, url in logo_map.items():
-        if key.lower() in team_name.lower() or team_name.lower() in key.lower():
-            return url
-
-    clean_name = team_name.split('(')[0].strip().replace(" ", "+")
-    return f"https://ui-avatars.com/api/?name={clean_name}&background=0f172a&color=38bdf8&size=128&bold=true"
-
-def convert_odds(prob, format_type):
-    if prob <= 0:
-        return "N/A"
-    if format_type == "Decimal Odds":
-        return f"{1 / prob:.2f}"
-    elif format_type == "American Odds":
-        if prob >= 0.5:
-            return f"-{int((prob / (1 - prob)) * 100)}"
-        else:
-            return f"+{int(((1 - prob) / prob) * 100)}"
-    return f"{prob * 100:.1f}% ({int(prob * 100)}¢)"
-
-#
+        "Crystal Palace": "
