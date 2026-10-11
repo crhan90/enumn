@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Premium Dark Glassmorphism Styling
+# Dark Glassmorphism Styling
 st.markdown("""
 <style>
     .main {
@@ -39,6 +39,14 @@ st.markdown("""
         filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.5));
     }
     
+    .score-card {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+    }
+
     .stProgress > div > div > div > div {
         background-image: linear-gradient(to right, #3b82f6 , #06b6d4);
     }
@@ -59,7 +67,7 @@ def get_team_logo(team_name):
         "Tottenham": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
         "Real Madrid": "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",
         "Barcelona": "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",
-        # LoL DCGI Group Stage Teams
+        # LoL DCGI Teams
         "JD Gaming": "https://a.espncdn.com/i/teamlogos/eSports/500/333.png",
         "KT Rolster": "https://a.espncdn.com/i/teamlogos/eSports/500/301.png",
         "BNK FEARX": "https://a.espncdn.com/i/teamlogos/eSports/500/311.png",
@@ -93,7 +101,7 @@ st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.95rem; m
 tab_foot, tab_val, tab_cs, tab_lol = st.tabs(["⚽ Football", "🎯 VALORANT", "🔫 Counter-Strike 2", "⚔️ League of Legends"])
 
 # ---------------------------------------------------------
-# 1. FOOTBALL ENGINE
+# 1. FOOTBALL ENGINE (WITH SCORELINE PREDICTION)
 # ---------------------------------------------------------
 with tab_foot:
     LEAGUES = {
@@ -166,7 +174,7 @@ with tab_foot:
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button("🚀 Calculate Football Odds", type="primary", use_container_width=True):
+            if st.button("🚀 Calculate Football Predictions", type="primary", use_container_width=True):
                 hg = df_foot[df_foot['HomeTeam'] == home_t]
                 ag = df_foot[df_foot['AwayTeam'] == away_t]
                 avg_h = df_foot['FTHG'].mean() or 1.35
@@ -189,13 +197,33 @@ with tab_foot:
                         prob_m[i, j] = p_i * p_j
                 prob_m /= prob_m.sum()
 
+                # Moneyline
                 home_win = np.sum(np.tril(prob_m, -1)) * 100
                 draw = np.sum(np.diag(prob_m)) * 100
                 away_win = np.sum(np.triu(prob_m, 1)) * 100
 
+                # Extract Top 4 Most Likely Exact Scorelines
+                score_list = []
+                for i in range(max_g):
+                    for j in range(max_g):
+                        score_list.append(((i, j), prob_m[i, j]))
+                score_list.sort(key=lambda x: x[1], reverse=True)
+                top_scores = score_list[:4]
+
+                # Market Odds
                 cover_15 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i - j >= 2) * 100
                 over_25 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i + j > 2.5) * 100
                 btts_yes = np.sum(prob_m[1:, 1:]) * 100
+
+                # ---------------- DISPLAY RESULTS ----------------
+                st.subheader("🎯 Predicted Exact Scorelines")
+                sc_cols = st.columns(4)
+                for idx, ((gh, ga), prob) in enumerate(top_scores):
+                    sc_cols[idx].metric(
+                        label=f"Rank #{idx+1} Score",
+                        value=f"{gh} - {ga}",
+                        delta=f"{prob*100:.1f}% Prob"
+                    )
 
                 st.subheader("📊 Match Result Odds (Moneyline)")
                 m1, m2, m3 = st.columns(3)
@@ -203,10 +231,10 @@ with tab_foot:
                 m2.metric("Draw", f"{draw:.1f}%", f"{int(draw)}¢")
                 m3.metric(f"{away_t} Win", f"{away_win:.1f}%", f"{int(away_win)}¢")
 
-                st.write("**Win Probability Bar**")
+                st.write("**Win Probability Gauge**")
                 st.progress(int(home_win))
 
-                st.subheader("🎯 Primary Betting Markets")
+                st.subheader("🎯 Primary Game Lines")
                 s1, s2, s3 = st.columns(3)
                 s1.metric(f"{home_t} -1.5 Spread", f"{cover_15:.1f}%", f"{int(cover_15)}¢")
                 s2.metric("Over 2.5 Total Goals", f"{over_25:.1f}%", f"{int(over_25)}¢")
@@ -216,7 +244,7 @@ with tab_foot:
         st.error(f"Unable to load data: {e}")
 
 # ---------------------------------------------------------
-# 2. ESPORTS ENGINE FUNCTION
+# 2. ESPORTS ENGINE (WITH EXACT SERIES SCORE PREDICTION)
 # ---------------------------------------------------------
 def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
     st.caption(f"🏆 Active Tournament: **{tournament_name}**")
@@ -276,6 +304,18 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
                 win_b = (s_1_2 + s_0_2) * 100
                 over_25 = (s_2_1 + s_1_2) * 100
 
+                # Determine Most Likely Score
+                scores = [
+                    (f"{t_a} 2 - 0 {t_b}", s_2_0),
+                    (f"{t_a} 2 - 1 {t_b}", s_2_1),
+                    (f"{t_b} 2 - 1 {t_a}", s_1_2),
+                    (f"{t_b} 2 - 0 {t_a}", s_0_2)
+                ]
+                scores.sort(key=lambda x: x[1], reverse=True)
+                top_score = scores[0]
+
+                st.info(f"🎯 **Predicted Most Likely Exact Score:** **{top_score[0]}** ({top_score[1]*100:.1f}% probability)")
+
                 st.subheader("📊 Match Winner (Moneyline)")
                 m1, m2 = st.columns(2)
                 m1.metric(f"{t_a} Series Win", f"{win_a:.1f}%", f"{int(win_a)}¢")
@@ -286,7 +326,7 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
                 p1.metric(f"{t_a} -1.5 Map Sweep (2-0)", f"{s_2_0*100:.1f}%", f"{int(s_2_0*100)}¢")
                 p2.metric("Over 2.5 Maps (Goes to Map 3)", f"{over_25:.1f}%", f"{int(over_25)}¢")
 
-                st.subheader("🎲 Exact Series Score")
+                st.subheader("🎲 Exact Series Score Matrix")
                 sc1, sc2, sc3, sc4 = st.columns(4)
                 sc1.metric("2 - 0", f"{s_2_0*100:.1f}%")
                 sc2.metric("2 - 1", f"{s_2_1*100:.1f}%")
@@ -305,6 +345,19 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
                 win_b = (s_2_3 + s_1_3 + s_0_3) * 100
                 over_35 = (s_3_1 + s_3_2 + s_2_3 + s_1_3) * 100
 
+                scores = [
+                    (f"{t_a} 3 - 0 {t_b}", s_3_0),
+                    (f"{t_a} 3 - 1 {t_b}", s_3_1),
+                    (f"{t_a} 3 - 2 {t_b}", s_3_2),
+                    (f"{t_b} 3 - 2 {t_a}", s_2_3),
+                    (f"{t_b} 3 - 1 {t_a}", s_1_3),
+                    (f"{t_b} 3 - 0 {t_a}", s_0_3)
+                ]
+                scores.sort(key=lambda x: x[1], reverse=True)
+                top_score = scores[0]
+
+                st.info(f"🎯 **Predicted Most Likely Exact Score:** **{top_score[0]}** ({top_score[1]*100:.1f}% probability)")
+
                 st.subheader("📊 Match Winner (Moneyline)")
                 m1, m2 = st.columns(2)
                 m1.metric(f"{t_a} Series Win", f"{win_a:.1f}%", f"{int(win_a)}¢")
@@ -315,18 +368,16 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
                 p1.metric(f"{t_a} -1.5 Map Spread", f"{(s_3_0+s_3_1)*100:.1f}%")
                 p2.metric("Over 3.5 Total Maps", f"{over_35:.1f}%")
 
-                st.subheader("🎲 Exact Series Score")
-                c_a, c_b = st.columns(2)
-                with c_a:
-                    st.write(f"**{t_a} Wins**")
-                    st.write(f"• 3 - 0: **{s_3_0*100:.1f}%**")
-                    st.write(f"• 3 - 1: **{s_3_1*100:.1f}%**")
-                    st.write(f"• 3 - 2: **{s_3_2*100:.1f}%**")
-                with c_b:
-                    st.write(f"**{t_b} Wins**")
-                    st.write(f"• 2 - 3: **{s_2_3*100:.1f}%**")
-                    st.write(f"• 1 - 3: **{s_1_3*100:.1f}%**")
-                    st.write(f"• 0 - 3: **{s_0_3*100:.1f}%**")
+                st.subheader("🎲 Exact Series Score Matrix")
+                sc1, sc2, sc3 = st.columns(3)
+                sc1.metric("3 - 0", f"{s_3_0*100:.1f}%")
+                sc2.metric("3 - 1", f"{s_3_1*100:.1f}%")
+                sc3.metric("3 - 2", f"{s_3_2*100:.1f}%")
+
+                sc4, sc5, sc6 = st.columns(3)
+                sc4.metric("2 - 3", f"{s_2_3*100:.1f}%")
+                sc5.metric("1 - 3", f"{s_1_3*100:.1f}%")
+                sc6.metric("0 - 3", f"{s_0_3*100:.1f}%")
 
 # VALORANT TAB
 with tab_val:
