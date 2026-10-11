@@ -4,10 +4,9 @@ import numpy as np
 import math
 import json
 import requests
-import plotly.graph_objects as go
 
 # ---------------------------------------------------------
-# 1. PAGE CONFIGURATION & CUSTOM DARK CYBER THEME
+# 1. PAGE CONFIGURATION & HIGH-CONTRAST DARK THEME
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APEX ANALYTICS PRO | AI Odds Engine",
@@ -16,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End Dark Glassmorphism CSS Injector
+# Custom High-Contrast Glassmorphism CSS Injector
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
@@ -28,10 +27,21 @@ st.markdown("""
         background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #080a0f 60%, #030712 100%);
     }
     
-    /* Top Hero Header */
+    /* Global Text Contrast Rules */
+    p, span, label, [data-testid="stWidgetLabel"] p {
+        color: #e2e8f0 !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #f8fafc !important;
+        font-weight: 700 !important;
+    }
+
+    /* Hero Header */
     .hero-container {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 20px;
         padding: 24px 32px;
         backdrop-filter: blur(16px);
@@ -53,10 +63,10 @@ st.markdown("""
     .status-badge {
         background: rgba(34, 197, 94, 0.15);
         border: 1px solid rgba(34, 197, 94, 0.4);
-        color: #4ade80;
+        color: #4ade80 !important;
         padding: 6px 14px;
         border-radius: 20px;
-        font-size: 0.82rem;
+        font-size: 0.82rem !important;
         font-weight: 700;
         display: inline-flex;
         align-items: center;
@@ -70,30 +80,44 @@ st.markdown("""
         box-shadow: 0 0 10px #22c55e;
     }
 
-    /* VS Matchup Banner */
+    /* VS Matchup Card */
     .vs-card {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.6));
-        border: 1px solid rgba(56, 189, 248, 0.25);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.7));
+        border: 1px solid rgba(56, 189, 248, 0.3);
         border-radius: 20px;
         padding: 28px;
         text-align: center;
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
         margin-bottom: 25px;
-        position: relative;
-        overflow: hidden;
     }
     .team-logo-img {
-        width: 85px;
-        height: 85px;
+        width: 90px;
+        height: 90px;
         object-fit: contain;
         filter: drop-shadow(0px 6px 15px rgba(0, 0, 0, 0.6));
-        transition: transform 0.3s ease;
-    }
-    .team-logo-img:hover {
-        transform: scale(1.08);
     }
 
-    /* Primary Buttons */
+    /* Tabs - High Contrast Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.8);
+        padding: 8px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        color: #cbd5e1 !important;
+        font-weight: 700 !important;
+        padding: 10px 22px;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #0284c7, #3b82f6) !important;
+        border: 1px solid #38bdf8 !important;
+        color: #ffffff !important;
+    }
+
+    /* Action Buttons */
     .stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%);
@@ -113,37 +137,16 @@ st.markdown("""
 
     /* Scoreline Cards */
     .score-card {
-        background: rgba(15, 23, 42, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 14px;
         padding: 16px;
         text-align: center;
-        transition: all 0.3s ease;
     }
     .score-card-top {
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.15));
-        border: 1px solid #38bdf8;
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
-    }
-
-    /* Tabs Styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background: rgba(15, 23, 42, 0.6);
-        padding: 8px;
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        color: #94a3b8;
-        font-weight: 600;
-        padding: 8px 20px;
-    }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        border: 1px solid #38bdf8 !important;
-        color: #38bdf8 !important;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(99, 102, 241, 0.25));
+        border: 1.5px solid #38bdf8;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -152,17 +155,47 @@ st.markdown("""
 # 2. LOGO MAPPING & HELPER UTILITIES
 # ---------------------------------------------------------
 def get_team_logo(team_name):
+    # Mapping exact CSV alias strings to official ESPN crest icons
     logo_map = {
-        # Premier League & Football
-        "Arsenal": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
-        "Chelsea": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png",
-        "Liverpool": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png",
+        # Premier League Teams (Dataset Short Names & Full Names)
+        "Man City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
         "Manchester City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
+        "Man United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
         "Manchester United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
+        "Arsenal": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
+        "Liverpool": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png",
+        "Chelsea": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png",
         "Tottenham": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
+        "Spurs": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
+        "Aston Villa": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png",
+        "Newcastle": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png",
+        "Brighton": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png",
+        "West Ham": "https://a.espncdn.com/i/teamlogos/soccer/500/371.png",
+        "Everton": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png",
+        "Fulham": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png",
+        "Brentford": "https://a.espncdn.com/i/teamlogos/soccer/500/337.png",
+        "Bournemouth": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png",
+        "Crystal Palace": "https://a.espncdn.com/i/teamlogos/soccer/500/384.png",
+        "Wolves": "https://a.espncdn.com/i/teamlogos/soccer/500/380.png",
+        "Wolverhampton": "https://a.espncdn.com/i/teamlogos/soccer/500/380.png",
+        "Leicester": "https://a.espncdn.com/i/teamlogos/soccer/500/375.png",
+        "Ipswich": "https://a.espncdn.com/i/teamlogos/soccer/500/373.png",
+        "Southampton": "https://a.espncdn.com/i/teamlogos/soccer/500/376.png",
+        "Nott'm Forest": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png",
+        "Nottingham": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png",
+
+        # Top European Teams
         "Real Madrid": "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",
         "Barcelona": "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",
-        # LoL DCGI Teams
+        "Atletico Madrid": "https://a.espncdn.com/i/teamlogos/soccer/500/1068.png",
+        "Bayern Munich": "https://a.espncdn.com/i/teamlogos/soccer/500/132.png",
+        "Dortmund": "https://a.espncdn.com/i/teamlogos/soccer/500/124.png",
+        "Inter": "https://a.espncdn.com/i/teamlogos/soccer/500/110.png",
+        "AC Milan": "https://a.espncdn.com/i/teamlogos/soccer/500/103.png",
+        "Juventus": "https://a.espncdn.com/i/teamlogos/soccer/500/111.png",
+        "PSG": "https://a.espncdn.com/i/teamlogos/soccer/500/160.png",
+
+        # Esports (LoL DCGI, Valorant, CS2)
         "JD Gaming": "https://a.espncdn.com/i/teamlogos/eSports/500/333.png",
         "KT Rolster": "https://a.espncdn.com/i/teamlogos/eSports/500/301.png",
         "BNK FEARX": "https://a.espncdn.com/i/teamlogos/eSports/500/311.png",
@@ -175,13 +208,19 @@ def get_team_logo(team_name):
         "Shopify Rebellion": "https://a.espncdn.com/i/teamlogos/eSports/500/365.png",
         "GAM Esports": "https://a.espncdn.com/i/teamlogos/eSports/500/340.png",
         "RED Canids": "https://a.espncdn.com/i/teamlogos/eSports/500/260.png",
-        # CS2 / Valorant
         "Team Spirit": "https://a.espncdn.com/i/teamlogos/eSports/500/350.png",
         "FaZe Clan": "https://a.espncdn.com/i/teamlogos/eSports/500/210.png",
         "Paper Rex": "https://a.espncdn.com/i/teamlogos/eSports/500/360.png"
     }
+
     if team_name in logo_map:
         return logo_map[team_name]
+    
+    # Partial substring search fallback for names like "Man City"
+    for key, url in logo_map.items():
+        if key.lower() in team_name.lower() or team_name.lower() in key.lower():
+            return url
+
     clean_name = team_name.split('(')[0].strip().replace(" ", "+")
     return f"https://ui-avatars.com/api/?name={clean_name}&background=0f172a&color=38bdf8&size=128&bold=true"
 
@@ -197,33 +236,6 @@ def convert_odds(prob, format_type):
             return f"+{int(((1 - prob) / prob) * 100)}"
     return f"{prob * 100:.1f}% ({int(prob * 100)}¢)"
 
-def render_plotly_gauge(team_a, team_b, prob_a):
-    prob_b = 1.0 - prob_a
-    fig = go.Figure(go.Pie(
-        labels=[team_a, team_b],
-        values=[prob_a * 100, prob_b * 100],
-        hole=0.72,
-        marker=dict(colors=['#38bdf8', '#818cf8']),
-        textinfo='label+percent',
-        textfont=dict(color='#f8fafc', size=14, family='Inter'),
-        hoverinfo='label+value'
-    ))
-    fig.update_layout(
-        showlegend=False,
-        height=220,
-        margin=dict(l=10, r=10, t=10, b=10),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        annotations=[dict(
-            text=f"<b>{prob_a*100:.0f}%</b>",
-            x=0.5, y=0.5,
-            font_size=28,
-            font_color='#38bdf8',
-            showarrow=False
-        )]
-    )
-    return fig
-
 # ---------------------------------------------------------
 # 3. SIDEBAR CONTROLS & KELLY WAGER CALCULATOR
 # ---------------------------------------------------------
@@ -233,7 +245,7 @@ odds_format = st.sidebar.selectbox("Odds Format Display", ["Probabilities (%) / 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 💰 Bankroll & Kelly Calculator")
 bankroll = st.sidebar.number_input("Total Bankroll ($)", min_value=10, value=1000, step=50)
-fractional_kelly = st.sidebar.slider("Kelly Fraction", 0.1, 1.0, 0.25, help="0.25 = Quarter Kelly (Recommended for safety)")
+fractional_kelly = st.sidebar.slider("Kelly Fraction", 0.1, 1.0, 0.25, help="0.25 = Quarter Kelly")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("⚡ **APEX Engine v2.6** • Powered by Poisson xG & Markov State Chain Models")
@@ -245,7 +257,7 @@ st.markdown("""
 <div class="hero-container">
     <div>
         <h1 class="hero-title">⚡ APEX ANALYTICS PRO</h1>
-        <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 0.95rem;">
+        <p style="color: #cbd5e1; margin: 4px 0 0 0; font-size: 0.95rem;">
             Multi-Market Predictive AI Engine for Global Sports & Esports
         </p>
     </div>
@@ -317,16 +329,16 @@ with tab_foot:
                 <div style="display: flex; justify-content: space-around; align-items: center;">
                     <div style="text-align: center; flex: 1;">
                         <img src="{logo_h}" class="team-logo-img"><br>
-                        <strong style="font-size: 1.2rem; color: #f8fafc;">{home_t}</strong><br>
-                        <span style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">HOME</span>
+                        <strong style="font-size: 1.25rem; color: #f8fafc; display: block; margin-top: 8px;">{home_t}</strong>
+                        <span style="color: #38bdf8; font-size: 0.85rem; font-weight: 700;">HOME</span>
                     </div>
                     <div style="flex: 0.5;">
-                        <span style="font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VS</span>
+                        <span style="font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VS</span>
                     </div>
                     <div style="text-align: center; flex: 1;">
                         <img src="{logo_a}" class="team-logo-img"><br>
-                        <strong style="font-size: 1.2rem; color: #f8fafc;">{away_t}</strong><br>
-                        <span style="color: #818cf8; font-size: 0.8rem; font-weight: 700;">AWAY</span>
+                        <strong style="font-size: 1.25rem; color: #f8fafc; display: block; margin-top: 8px;">{away_t}</strong>
+                        <span style="color: #818cf8; font-size: 0.85rem; font-weight: 700;">AWAY</span>
                     </div>
                 </div>
             </div>
@@ -359,18 +371,15 @@ with tab_foot:
                 p_draw = np.sum(np.diag(prob_m))
                 p_away = np.sum(np.triu(prob_m, 1))
 
-                # Exact Score Ranker
                 score_list = [((i, j), prob_m[i, j]) for i in range(max_g) for j in range(max_g)]
                 score_list.sort(key=lambda x: x[1], reverse=True)
                 top_scores = score_list[:4]
 
-                # Market Lines
                 cover_15 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i - j >= 2)
                 over_25 = sum(prob_m[i, j] for i in range(max_g) for j in range(max_g) if i + j > 2.5)
                 btts_yes = np.sum(prob_m[1:, 1:])
 
-                # --- DISPLAY Visual Charts & Cards ---
-                st.markdown("### 🎯 Predicted Exact Scorelines")
+                st.markdown("<h3 style='color: #f8fafc !important;'>🎯 Predicted Exact Scorelines</h3>", unsafe_allow_html=True)
                 sc_cols = st.columns(4)
                 for idx, ((gh, ga), prob) in enumerate(top_scores):
                     badge_class = "score-card score-card-top" if idx == 0 else "score-card"
@@ -379,35 +388,32 @@ with tab_foot:
                     <div class="{badge_class}">
                         <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">{star}</div>
                         <div style="font-size: 1.8rem; font-weight: 800; color: #f8fafc;">{gh} - {ga}</div>
-                        <div style="color: #94a3b8; font-size: 0.9rem;">{prob*100:.1f}% Prob</div>
+                        <div style="color: #cbd5e1; font-size: 0.9rem;">{prob*100:.1f}% Prob</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 st.markdown("---")
-                left_col, right_col = st.columns([1, 1])
+                st.markdown("<h3 style='color: #f8fafc !important;'>📊 Win Probability Distribution</h3>", unsafe_allow_html=True)
+                st.write(f"**{home_t} ({p_home*100:.1f}%)** vs **Draw ({p_draw*100:.1f}%)** vs **{away_t} ({p_away*100:.1f}%)**")
+                st.progress(int(p_home * 100))
 
-                with left_col:
-                    st.markdown("### 📊 Win Probability Distribution")
-                    st.plotly_chart(render_plotly_gauge(home_t, away_t, p_home), use_container_width=True)
+                st.markdown("<h3 style='color: #f8fafc !important;'>💸 Moneyline Odds</h3>", unsafe_allow_html=True)
+                m1, m2, m3 = st.columns(3)
+                m1.metric(f"{home_t} Win", convert_odds(p_home, odds_format))
+                m2.metric("Draw", convert_odds(p_draw, odds_format))
+                m3.metric(f"{away_t} Win", convert_odds(p_away, odds_format))
 
-                with right_col:
-                    st.markdown("### 💸 Moneyline Odds")
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric(f"{home_t} Win", convert_odds(p_home, odds_format))
-                    m2.metric("Draw", convert_odds(p_draw, odds_format))
-                    m3.metric(f"{away_t} Win", convert_odds(p_away, odds_format))
-
-                    st.markdown("### 🎲 Game Line Markets")
-                    s1, s2, s3 = st.columns(3)
-                    s1.metric(f"{home_t} -1.5 Spread", convert_odds(cover_15, odds_format))
-                    s2.metric("Over 2.5 Total Goals", convert_odds(over_25, odds_format))
-                    s3.metric("BTTS Yes", convert_odds(btts_yes, odds_format))
+                st.markdown("<h3 style='color: #f8fafc !important;'>🎲 Game Line Markets</h3>", unsafe_allow_html=True)
+                s1, s2, s3 = st.columns(3)
+                s1.metric(f"{home_t} -1.5 Spread", convert_odds(cover_15, odds_format))
+                s2.metric("Over 2.5 Total Goals", convert_odds(over_25, odds_format))
+                s3.metric("BTTS Yes", convert_odds(btts_yes, odds_format))
 
     except Exception as e:
         st.error(f"Error loading football match dataset: {e}")
 
 # ---------------------------------------------------------
-# 6. ESPORTS REUSABLE ENGINE FUNCTION
+# 6. ESPORTS ENGINE FUNCTION
 # ---------------------------------------------------------
 def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
     st.caption(f"🏆 Active Tournament: **{tournament_name}**")
@@ -430,15 +436,15 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
             <div style="display: flex; justify-content: space-around; align-items: center;">
                 <div style="text-align: center; flex: 1;">
                     <img src="{logo_a}" class="team-logo-img"><br>
-                    <strong style="font-size: 1.2rem; color: #f8fafc;">{t_a}</strong>
+                    <strong style="font-size: 1.25rem; color: #f8fafc; display: block; margin-top: 8px;">{t_a}</strong>
                 </div>
                 <div style="flex: 0.5;">
                     <span style="font-size: 2rem; font-weight: 900; color: #38bdf8;">VS</span><br>
-                    <span style="color: #64748b; font-size: 0.75rem; font-weight: 700;">{fmt} SERIES</span>
+                    <span style="color: #cbd5e1; font-size: 0.75rem; font-weight: 700;">{fmt} SERIES</span>
                 </div>
                 <div style="text-align: center; flex: 1;">
                     <img src="{logo_b}" class="team-logo-img"><br>
-                    <strong style="font-size: 1.2rem; color: #f8fafc;">{t_b}</strong>
+                    <strong style="font-size: 1.25rem; color: #f8fafc; display: block; margin-top: 8px;">{t_b}</strong>
                 </div>
             </div>
         </div>
@@ -450,58 +456,56 @@ def render_esports_tab(sport_name, tournament_name, teams_dict, tab_key):
             p = 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
             q = 1 - p
 
-            left_c, right_c = st.columns([1, 1])
-            with left_c:
-                st.markdown("### 📊 Map Win Rate Gauge")
-                st.plotly_chart(render_plotly_gauge(t_a, t_b, p), use_container_width=True)
+            st.markdown("<h3 style='color: #f8fafc !important;'>📊 Map Win Rate Probability</h3>", unsafe_allow_html=True)
+            st.write(f"**{t_a} ({p*100:.1f}%)** vs **{t_b} ({q*100:.1f}%)**")
+            st.progress(int(p * 100))
 
-            with right_c:
-                st.markdown("### 🎯 Series Moneyline")
-                if fmt == "Bo3":
-                    s_2_0 = p ** 2
-                    s_2_1 = 2 * (p ** 2) * q
-                    s_1_2 = 2 * (q ** 2) * p
-                    s_0_2 = q ** 2
-                    p_win_a = s_2_0 + s_2_1
-                    p_win_b = s_1_2 + s_0_2
+            st.markdown("<h3 style='color: #f8fafc !important;'>🎯 Series Moneyline</h3>", unsafe_allow_html=True)
+            if fmt == "Bo3":
+                s_2_0 = p ** 2
+                s_2_1 = 2 * (p ** 2) * q
+                s_1_2 = 2 * (q ** 2) * p
+                s_0_2 = q ** 2
+                p_win_a = s_2_0 + s_2_1
+                p_win_b = s_1_2 + s_0_2
 
-                    m1, m2 = st.columns(2)
-                    m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
-                    m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
+                m1, m2 = st.columns(2)
+                m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
+                m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
 
-                    st.markdown("### 🎲 Exact Series Score Probability Matrix")
-                    sc1, sc2, sc3, sc4 = st.columns(4)
-                    sc1.metric("2 - 0", convert_odds(s_2_0, odds_format))
-                    sc2.metric("2 - 1", convert_odds(s_2_1, odds_format))
-                    sc3.metric("1 - 2", convert_odds(s_1_2, odds_format))
-                    sc4.metric("0 - 2", convert_odds(s_0_2, odds_format))
+                st.markdown("<h3 style='color: #f8fafc !important;'>🎲 Exact Series Score Probability Matrix</h3>", unsafe_allow_html=True)
+                sc1, sc2, sc3, sc4 = st.columns(4)
+                sc1.metric("2 - 0", convert_odds(s_2_0, odds_format))
+                sc2.metric("2 - 1", convert_odds(s_2_1, odds_format))
+                sc3.metric("1 - 2", convert_odds(s_1_2, odds_format))
+                sc4.metric("0 - 2", convert_odds(s_0_2, odds_format))
 
-                else:
-                    s_3_0 = p ** 3
-                    s_3_1 = 3 * (p ** 3) * q
-                    s_3_2 = 6 * (p ** 3) * (q ** 2)
-                    s_2_3 = 6 * (q ** 3) * (p ** 2)
-                    s_1_3 = 3 * (q ** 3) * p
-                    s_0_3 = q ** 3
-                    p_win_a = s_3_0 + s_3_1 + s_3_2
-                    p_win_b = s_2_3 + s_1_3 + s_0_3
+            else:
+                s_3_0 = p ** 3
+                s_3_1 = 3 * (p ** 3) * q
+                s_3_2 = 6 * (p ** 3) * (q ** 2)
+                s_2_3 = 6 * (q ** 3) * (p ** 2)
+                s_1_3 = 3 * (q ** 3) * p
+                s_0_3 = q ** 3
+                p_win_a = s_3_0 + s_3_1 + s_3_2
+                p_win_b = s_2_3 + s_1_3 + s_0_3
 
-                    m1, m2 = st.columns(2)
-                    m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
-                    m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
+                m1, m2 = st.columns(2)
+                m1.metric(f"{t_a} Win Series", convert_odds(p_win_a, odds_format))
+                m2.metric(f"{t_b} Win Series", convert_odds(p_win_b, odds_format))
 
-                    st.markdown("### 🎲 Exact Series Score Matrix")
-                    c_a, c_b = st.columns(2)
-                    with c_a:
-                        st.write(f"**{t_a} Scores**")
-                        st.write(f"• 3 - 0: **{convert_odds(s_3_0, odds_format)}**")
-                        st.write(f"• 3 - 1: **{convert_odds(s_3_1, odds_format)}**")
-                        st.write(f"• 3 - 2: **{convert_odds(s_3_2, odds_format)}**")
-                    with c_b:
-                        st.write(f"**{t_b} Scores**")
-                        st.write(f"• 2 - 3: **{convert_odds(s_2_3, odds_format)}**")
-                        st.write(f"• 1 - 3: **{convert_odds(s_1_3, odds_format)}**")
-                        st.write(f"• 0 - 3: **{convert_odds(s_0_3, odds_format)}**")
+                st.markdown("<h3 style='color: #f8fafc !important;'>🎲 Exact Series Score Matrix</h3>", unsafe_allow_html=True)
+                c_a, c_b = st.columns(2)
+                with c_a:
+                    st.write(f"**{t_a} Scores**")
+                    st.write(f"• 3 - 0: **{convert_odds(s_3_0, odds_format)}**")
+                    st.write(f"• 3 - 1: **{convert_odds(s_3_1, odds_format)}**")
+                    st.write(f"• 3 - 2: **{convert_odds(s_3_2, odds_format)}**")
+                with c_b:
+                    st.write(f"**{t_b} Scores**")
+                    st.write(f"• 2 - 3: **{convert_odds(s_2_3, odds_format)}**")
+                    st.write(f"• 1 - 3: **{convert_odds(s_1_3, odds_format)}**")
+                    st.write(f"• 0 - 3: **{convert_odds(s_0_3, odds_format)}**")
 
 # VALORANT TAB
 with tab_val:
@@ -534,7 +538,7 @@ with tab_lol:
 # 7. LIVE POLYMARKET FEEDS TAB
 # ---------------------------------------------------------
 with tab_poly:
-    st.subheader("🌐 Live Polymarket Prediction Markets")
+    st.markdown("<h3 style='color: #f8fafc !important;'>🌐 Live Polymarket Prediction Markets</h3>", unsafe_allow_html=True)
     st.caption("Real-time sports and esports prediction contracts fetched from Polymarket Gamma API")
 
     @st.cache_data(ttl=300)
@@ -578,7 +582,7 @@ with tab_poly:
             <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 18px; margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="color: #38bdf8; font-weight: 700; font-size: 0.8rem;">🔴 LIVE POLYMARKET CONTRACT</span>
-                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">24h Vol: ${vol:,.0f}</span>
+                    <span style="color: #cbd5e1; font-size: 0.8rem; font-weight: 600;">24h Vol: ${vol:,.0f}</span>
                 </div>
                 <h4 style="margin: 8px 0; color: #f8fafc;">{title}</h4>
             </div>
