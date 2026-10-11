@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Glassmorphism CSS with Bright Text Rules
+# Custom High-Contrast CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -26,12 +26,10 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* High contrast text overrides */
     .stMarkdown, .stText, label, p, span {
         color: #e2e8f0 !important;
     }
     
-    /* Hero Banner Header */
     .hero-container {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -72,7 +70,6 @@ st.markdown("""
         box-shadow: 0 0 10px #22c55e;
     }
 
-    /* VS Matchup Header Card */
     .vs-card {
         background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8));
         border: 1px solid rgba(56, 189, 248, 0.35);
@@ -89,7 +86,6 @@ st.markdown("""
         filter: drop-shadow(0px 6px 15px rgba(0, 0, 0, 0.6));
     }
 
-    /* Navigation Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background: rgba(15, 23, 42, 0.85);
@@ -109,7 +105,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Primary Buttons */
     .stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%);
@@ -122,7 +117,6 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
     }
 
-    /* Exact Score Cards */
     .score-card {
         background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(255, 255, 255, 0.12);
@@ -139,20 +133,160 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. EMBLEM & LOGO MAPPER
+# 2. SHORT-ID EMBLEM & LOGO MAPPER
 # ---------------------------------------------------------
+FOOTBALL_LOGOS = {
+    "382": ["Man City", "Manchester City"],
+    "360": ["Man United", "Manchester United"],
+    "359": ["Arsenal"],
+    "364": ["Liverpool"],
+    "363": ["Chelsea"],
+    "367": ["Tottenham", "Spurs"],
+    "362": ["Aston Villa"],
+    "361": ["Newcastle"],
+    "331": ["Brighton"],
+    "371": ["West Ham"],
+    "368": ["Everton"],
+    "370": ["Fulham"],
+    "337": ["Brentford"],
+    "349": ["Bournemouth"],
+    "384": ["Crystal Palace"],
+    "380": ["Wolves", "Wolverhampton"],
+    "393": ["Nott'm Forest", "Nottingham"],
+    "375": ["Leicester"],
+    "373": ["Ipswich"],
+    "376": ["Southampton"],
+    "86": ["Real Madrid"],
+    "83": ["Barcelona"]
+}
+
+ESPORTS_LOGOS = {
+    "305": ["Gen.G"],
+    "310": ["Hanwha Life Esports"],
+    "300": ["T1"],
+    "304": ["Dplus KIA"],
+    "331": ["Bilibili Gaming (BLG)"],
+    "332": ["Top Esports (TES)"],
+    "325": ["Invictus Gaming (iG)"],
+    "222": ["G2 Esports"],
+    "209": ["Team Liquid Alienware"],
+    "202": ["Cloud9"],
+    "350": ["Team Spirit"],
+    "255": ["Team Vitality"],
+    "210": ["FaZe Clan"],
+    "201": ["Natus Vincere (NAVI)"],
+    "360": ["Paper Rex"],
+    "203": ["Fnatic"],
+    "230": ["100 Thieves"],
+    "220": ["NRG"]
+}
+
 def get_team_logo(team_name):
-    logo_map = {
-        # Premier League Teams
-        "Man City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
-        "Manchester City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
-        "Man United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
-        "Manchester United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
-        "Arsenal": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
-        "Liverpool": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png",
-        "Chelsea": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png",
-        "Tottenham": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
-        "Spurs": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
-        "Aston Villa": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png",
-        "Newcastle": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png",
-        "Brighton": "
+    # Search Football Teams
+    for id_code, aliases in FOOTBALL_LOGOS.items():
+        if any(alias.lower() in team_name.lower() or team_name.lower() in alias.lower() for alias in aliases):
+            return f"https://a.espncdn.com/i/teamlogos/soccer/500/{id_code}.png"
+            
+    # Search Esports Teams
+    for id_code, aliases in ESPORTS_LOGOS.items():
+        if any(alias.lower() in team_name.lower() or team_name.lower() in alias.lower() for alias in aliases):
+            return f"https://a.espncdn.com/i/teamlogos/eSports/500/{id_code}.png"
+
+    clean_name = team_name.split('(')[0].strip().replace(" ", "+")
+    return f"https://ui-avatars.com/api/?name={clean_name}&background=0f172a&color=38bdf8&size=128&bold=true"
+
+def convert_odds(prob, format_type):
+    if prob <= 0:
+        return "N/A"
+    if format_type == "Decimal Odds":
+        return f"{1 / prob:.2f}"
+    elif format_type == "American Odds":
+        if prob >= 0.5:
+            return f"-{int((prob / (1 - prob)) * 100)}"
+        else:
+            return f"+{int(((1 - prob) / prob) * 100)}"
+    return f"{prob * 100:.1f}% ({int(prob * 100)}¢)"
+
+# ---------------------------------------------------------
+# 3. SIDEBAR CONTROLS
+# ---------------------------------------------------------
+st.sidebar.markdown("### ⚙️ Engine Settings")
+odds_format = st.sidebar.selectbox("Odds Format Display", ["Probabilities (%) / Polymarket (¢)", "Decimal Odds", "American Odds"])
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💰 Bankroll Calculator")
+bankroll = st.sidebar.number_input("Total Bankroll ($)", min_value=10, value=1000, step=50)
+fractional_kelly = st.sidebar.slider("Kelly Fraction", 0.1, 1.0, 0.25)
+
+st.sidebar.markdown("---")
+st.sidebar.caption("⚡ **APEX Engine v2.6** • Powered by Poisson xG & Markov Models")
+
+# ---------------------------------------------------------
+# 4. HERO HEADER
+# ---------------------------------------------------------
+st.markdown("""
+<div class="hero-container">
+    <div>
+        <h1 class="hero-title">⚡ APEX ANALYTICS PRO</h1>
+        <p style="color: #cbd5e1; margin: 4px 0 0 0; font-size: 0.95rem;">
+            Multi-Market Predictive AI Engine for Global Sports & Esports
+        </p>
+    </div>
+    <div class="status-badge">
+        <div class="pulse-dot"></div> LIVE AI MODELS ACTIVE
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+tab_foot, tab_val, tab_cs, tab_lol, tab_poly = st.tabs([
+    "⚽ Football (2026/27)", "🎯 VALORANT", "🔫 Counter-Strike 2", "⚔️ LoL Worlds 2026", "🌐 Live Polymarket Markets"
+])
+
+# ---------------------------------------------------------
+# 5. FOOTBALL ENGINE
+# ---------------------------------------------------------
+with tab_foot:
+    LEAGUES = {
+        "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English Premier League (2026/2027)": "E0",
+        "🇪🇸 Spanish La Liga": "SP1",
+        "🇮🇹 Italian Serie A": "I1",
+        "🇩🇪 German Bundesliga": "D1",
+        "🇫🇷 French Ligue 1": "F1"
+    }
+    selected_league = st.selectbox("Select Competition", list(LEAGUES.keys()), key="foot_league")
+    league_code = LEAGUES[selected_league]
+
+    FALLBACK_EPL = pd.DataFrame([
+        {"HomeTeam": "Arsenal", "AwayTeam": "Chelsea", "FTHG": 2, "FTAG": 1},
+        {"HomeTeam": "Liverpool", "AwayTeam": "Man City", "FTHG": 2, "FTAG": 2},
+        {"HomeTeam": "Man United", "AwayTeam": "Spurs", "FTHG": 1, "FTAG": 0},
+        {"HomeTeam": "Aston Villa", "AwayTeam": "Newcastle", "FTHG": 3, "FTAG": 1},
+        {"HomeTeam": "Arsenal", "AwayTeam": "Liverpool", "FTHG": 1, "FTAG": 1},
+        {"HomeTeam": "Man City", "AwayTeam": "Chelsea", "FTHG": 3, "FTAG": 0},
+        {"HomeTeam": "Brighton", "AwayTeam": "West Ham", "FTHG": 2, "FTAG": 0},
+        {"HomeTeam": "Everton", "AwayTeam": "Fulham", "FTHG": 1, "FTAG": 1},
+        {"HomeTeam": "Bournemouth", "AwayTeam": "Brentford", "FTHG": 2, "FTAG": 1},
+        {"HomeTeam": "Crystal Palace", "AwayTeam": "Wolves", "FTHG": 0, "FTAG": 0},
+        {"HomeTeam": "Nott'm Forest", "AwayTeam": "Leicester", "FTHG": 2, "FTAG": 1}
+    ])
+
+    @st.cache_data(ttl=1800)
+    def load_football_data_safe(code):
+        url = f"https://www.football-data.co.uk/mmz4281/2526/{code}.csv"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        try:
+            res = requests.get(url, headers=headers, timeout=3)
+            if res.status_code == 200:
+                df = pd.read_csv(StringIO(res.text))
+                if 'HomeTeam' in df.columns and len(df) > 0:
+                    return df[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']].dropna()
+        except Exception:
+            pass
+        return FALLBACK_EPL
+
+    df_foot = load_football_data_safe(league_code)
+    teams_foot = sorted(list(set(df_foot['HomeTeam'].unique()).union(set(df_foot['AwayTeam'].unique()))))
+
+    c1, c2 = st.columns(2)
+    with c1:
+        home_t =
