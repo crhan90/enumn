@@ -4,9 +4,10 @@ import numpy as np
 import math
 import json
 import requests
+from io import StringIO
 
 # ---------------------------------------------------------
-# 1. PAGE CONFIGURATION & CLEAN DARK THEME
+# 1. PAGE CONFIGURATION & HIGH-CONTRAST DARK THEME
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APEX ANALYTICS PRO | AI Odds Engine",
@@ -15,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# High-Contrast Glassmorphism Styling
+# Custom Glassmorphism CSS with Bright Text Rules
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -25,12 +26,12 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* Ensure high contrast for all text elements */
+    /* High contrast text overrides */
     .stMarkdown, .stText, label, p, span {
         color: #e2e8f0 !important;
     }
     
-    /* Hero Header */
+    /* Hero Banner Header */
     .hero-container {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -88,7 +89,7 @@ st.markdown("""
         filter: drop-shadow(0px 6px 15px rgba(0, 0, 0, 0.6));
     }
 
-    /* Tabs Styling */
+    /* Navigation Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background: rgba(15, 23, 42, 0.85);
@@ -108,7 +109,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Action Buttons */
+    /* Primary Buttons */
     .stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%);
@@ -142,7 +143,7 @@ st.markdown("""
 # ---------------------------------------------------------
 def get_team_logo(team_name):
     logo_map = {
-        # Premier League
+        # Premier League Teams
         "Man City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
         "Manchester City": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png",
         "Man United": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png",
@@ -154,10 +155,4 @@ def get_team_logo(team_name):
         "Spurs": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png",
         "Aston Villa": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png",
         "Newcastle": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png",
-        "Brighton": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png",
-        "West Ham": "https://a.espncdn.com/i/teamlogos/soccer/500/371.png",
-        "Everton": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png",
-        "Fulham": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png",
-        "Brentford": "https://a.espncdn.com/i/teamlogos/soccer/500/337.png",
-        "Bournemouth": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png",
-        "Crystal Palace": "
+        "Brighton": "
